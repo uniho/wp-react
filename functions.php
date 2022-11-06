@@ -11,6 +11,7 @@ add_shortcode('acf', 'sc_acf_func' );
 function sc_sessionToken_func() {
 	$token = isset($_SESSION['token']) ? $_SESSION['token'] : false;
 	if (!$token) {
+        session_start();
 		$token = md5(uniqid(rand(), TRUE));
 		$_SESSION['token'] = $token;
 	}
@@ -40,6 +41,7 @@ function sc_ReactJS_func($atts) {
 
 	$token = isset($_SESSION['token']) ? $_SESSION['token'] : false;
 	if (!$token) {
+        session_start();
 		$token = md5(uniqid(rand(), TRUE));
 		$_SESSION['token'] = $token;
 	}
