@@ -4,7 +4,7 @@
 
 $header = getallheaders();
 
-if (!isset($_SESSION['token']) || $header['X-CSRF-Token'] != $_SESSION['token']) {
+if (!isset($_SESSION['react-token']) || $header['X-CSRF-Token'] != $_SESSION['react-token']) {
   echo "bad token";
   exit;
 }
