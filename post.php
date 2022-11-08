@@ -3,8 +3,9 @@
 // POST
 
 $token = isset($_SERVER['HTTP_X_CSRF_TOKEN']) ? $_SERVER['HTTP_X_CSRF_TOKEN'] : false;
+$apcu = isset($_COOKIE['wp-react-cookie']) ? apcu_fetch($_COOKIE['wp-react-cookie']) : false;
 
-if (!isset($_COOKIE['wp-react-cookie']) || !$token || $token !== apcu_fetch($_COOKIE['wp-react-cookie'])) {
+if (!isset($_COOKIE['wp-react-cookie']) || !isset($apcu['token']) || !$token || $token !== $apcu['token']) {
   echo "bad token";
   exit;
 }

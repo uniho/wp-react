@@ -1,20 +1,37 @@
 <?php
 
 // dbDelta() を使えるようにする
+// dbDelta() 使用上の注意
+// * 1 行につき、ひとつのフィールドを定義してください。〔訳注：ひとつの行に複数のフィールド定義を書くことはできません。さもなくば ALTER TABLE が正しく実行されず、プラグインのバージョンアップに失敗します。〕
+// * PRIMARY KEY というキーワードと、主キーの定義の間には、二つのスペースが必要です。
+// * INDEX という同義語ではなく、KEY というキーワードを使う必要があります。さらに最低ひとつの KEY を含めなければなりません。
+// * フィールド名のまわりにアポストロフィ（'）やバッククォート（`）を使ってはいけません。
+// * フィールドタイプはすべて小文字であること。
+// * SQL キーワード、例えば CREATE TABLE や UPDATE は、大文字であること。
+// * 長さパラメータを受け付けるすべてのフィールドに長さを指定すること。例えば int(11) のように。      dbDelta($sql);
 require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
 
 // 初期化処理
-add_action('after_setup_theme', 'my_after_setup_theme');
+// 
 function my_after_setup_theme() {
+  //
+}
+add_action('after_setup_theme', 'my_after_setup_theme');
+
+
+// DB Table の準備をする SC
+function sc_dbInit_func($atts) {
   global $wpdb;
 
   $tableName = "{$wpdb->prefix}aaa_config"; //テーブル名
 
+  $varchar_max = 65535;
+
   $r = $wpdb->get_results("SHOW TABLES FROM '" . DB_NAME . "' LIKE '$tableName'");
   if (!$r) {
     $sql = "CREATE TABLE {$tableName} (
-      cfg_key int varchar(20)  PRIMARY KEY,
-      cfg_val varchar(max)
+      cfg_key varchar(20)  PRIMARY KEY,
+      cfg_val varchar($varchar_max)
     ) {$wpdb->get_charset_collate()};";
     dbDelta($sql);
   
@@ -25,37 +42,26 @@ function my_after_setup_theme() {
     $wpdb->query($sql);
   }
 
-  // $tableName = "{$wpdb->prefix}aaa_kokyaku"; //テーブル名
+  $tableName = "{$wpdb->prefix}aaa_kokyaku"; //テーブル名
 
-  // $wpdb->get_row("SHOW TABLES FROM '" . DB_NAME . "' LIKE '$tableName'");
-  // if (!$wpdb->num_rows) {
-  //   $sql = "CREATE TABLE {$tableName} (
-  //     k_id int(11) unsigned  PRIMARY KEY  AUTO_INCREMENT,
-  //     k_no int(11) unsigned,
-  //     k_furi varchar(max),
-  //     k_tel varchar(max),
-  //     k_name varchar(max),
-  //     k_version int,
-  //     k_json varchar(max)
-  //   ) {$wpdb->get_charset_collate()};";
-  //   dbDelta($sql);
-  
-  //   $sql = "CREATE UNIQUE INDEX index_no ON {$tableName} (
-  //     k_no
-  //   );";
-  //   dbDelta($sql);
-
-  //   $sql = "CREATE INDEX index_furi ON {$tableName} (
-  //     k_furi
-  //   );";
-  //   dbDelta($sql);
-
-  //   $sql = "CREATE INDEX index_furi ON {$tableName} (
-  //     k_tel
-  //   );";
-  //   dbDelta($sql);
-  // }
+  $r = $wpdb->get_results("SHOW TABLES FROM '" . DB_NAME . "' LIKE '$tableName'");
+  if (!$r) {
+    $sql = "CREATE TABLE {$tableName} (
+      k_id int(11) unsigned  PRIMARY KEY  AUTO_INCREMENT,
+      k_no int(11) unsigned,
+      k_furi varchar($varchar_max),
+      k_tel varchar($varchar_max),
+      k_name varchar($varchar_max),
+      k_version int(11) unsigned,
+      k_json varchar($varchar_max),
+      UNIQUE KEY index_no (k_no),
+      KEY index_furi (k_furi),
+      KEY index_tel (k_tel)
+    ) {$wpdb->get_charset_collate()};";
+    dbDelta($sql);
+  }
 }
+add_shortcode('dbInit', 'sc_dbInit_func' );
 
 
 // SQL を実行する SC
@@ -63,7 +69,11 @@ function sc_sql_func($atts) {
   if (!isset($atts['sql'])) return 'no sql';
   
   global $wpdb;
-  $r = $wpdb->get_results($atts['sql']);
+
+  $sql = $atts['sql'];
+  if ($sql == 'show tables') $sql = "SHOW TABLES FROM " . DB_NAME;
+
+  $r = $wpdb->get_results($sql);
   return json_encode($r);
 }
 add_shortcode('sql', 'sc_sql_func' );
@@ -147,13 +157,14 @@ function sc_ReactJS_func($atts) {
   $jsfile = get_stylesheet_directory_uri() . '/' . $atts['src'];
   $func = $atts['func'];
 
-  $token = isset($_COOKIE['wp-react-cookie']) ? apcu_fetch($_COOKIE['wp-react-cookie']) : false;
+  $apcu = isset($_COOKIE['wp-react-cookie']) ? apcu_fetch($_COOKIE['wp-react-cookie']) : false;
+  $token = isset($apcu['token']) ? $apcu['token'] : false;
   if (!$token) {
     $expires = 60 * 60 * 24 * 7;
     $key = md5(uniqid(rand(), TRUE));
     setcookie('wp-react-cookie', $key, time()+$expires);
     $token = md5(uniqid(rand(), TRUE));
-    apcu_store($key, $token, $expires);
+    apcu_store($key, ['token' => $token], $expires);
   }
 
   $props = '{'.
@@ -166,34 +177,34 @@ function sc_ReactJS_func($atts) {
     '<div id="app"></div>'."\n".
     '<script type="module">'."\n".
     '(async function _() { '.
-    'if (!window.React) {'.
-    'const modules = await Promise.all(['.
-      'import("https://jspm.dev/react@18.3"),'.
-      'import("https://jspm.dev/react-dom@18.3/client"),'.
-    ']); '.
-    'window.React = modules[0].default; '.
-    'window.ReactDOM = modules[1].default; '.
-                'window.Suspense = React.Suspense; '.
-                'window.Fragment = React.Fragment; '.
-    '} '.
-                'if (!window.html) {'.
-                'const modules = await Promise.all(['.
-                        'import("https://unpkg.com/htm@3.1?module"),'.
-                        'import("https://cdn.skypack.dev/@emotion/css?min"),'.
-                ']); '.
-    'const htm = modules[0].default; '.
-    'const {cx, css, keyframes, injectGlobal} = modules[1]; '.
-    'window.html = htm.bind(React.createElement); '.
-    'window.raw = window.styled = String.raw; '.
-    'window.cx = cx; '.
-    'window.css = css; '.
-    'window.keyframes = keyframes; '.
-    'window.injectGlobal = injectGlobal; '.
-    '} '.
-                "const src = await import('$jsfile'); ".
-    "const App = await src.$func($props); ".
-                "const root = ReactDOM.createRoot(document.getElementById('app')); " .
-                "root.render(React.createElement(App)); " .
+      'if (!window.React) {'.
+        'const modules = await Promise.all(['.
+          'import("https://jspm.dev/react@18.3"),'.
+          'import("https://jspm.dev/react-dom@18.3/client"),'.
+        ']); '.
+        'window.React = modules[0].default; '.
+        'window.ReactDOM = modules[1].default; '.
+        'window.Suspense = React.Suspense; '.
+        'window.Fragment = React.Fragment; '.
+      '} '.
+      'if (!window.html) {'.
+        'const modules = await Promise.all(['.
+          'import("https://unpkg.com/htm@3.1?module"),'.
+          'import("https://cdn.skypack.dev/@emotion/css@11?min"),'.
+        ']); '.
+        'const htm = modules[0].default; '.
+        'const {cx, css, keyframes, injectGlobal} = modules[1]; '.
+        'window.html = htm.bind(React.createElement); '.
+        'window.raw = window.styled = String.raw; '.
+        'window.cx = cx; '.
+        'window.css = css; '.
+        'window.keyframes = keyframes; '.
+        'window.injectGlobal = injectGlobal; '.
+      '} '.
+      "const src = await import('$jsfile'); ".
+      "const App = await src.$func($props); ".
+      "const root = ReactDOM.createRoot(document.getElementById('app')); " .
+      "root.render(React.createElement(App)); " .
     "})();\n</script>";
 
   return $src;
