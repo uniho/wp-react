@@ -26,9 +26,6 @@ class AAA {
         cfg_val varchar(1024)
       ) {$wpdb->get_charset_collate()};";
 
-      require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
-      dbDelta($sql);
-
       // dbDelta() 使用上の注意
       // * 1 行につき、ひとつのフィールドを定義してください。〔訳注：ひとつの行に複数のフィールド定義を書くことはできません。さもなくば ALTER TABLE が正しく実行されず、プラグインのバージョンアップに失敗します。〕
       // * PRIMARY KEY というキーワードと、主キーの定義の間には、二つのスペースが必要です。
@@ -37,6 +34,9 @@ class AAA {
       // * フィールドタイプはすべて小文字であること。
       // * SQL キーワード、例えば CREATE TABLE や UPDATE は、大文字であること。
       // * 長さパラメータを受け付けるすべてのフィールドに長さを指定すること。例えば int(11) のように。      dbDelta($sql);
+      require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+      dbDelta($sql);
+
       update_option('aaa_version', $db_ver);
     }
 
