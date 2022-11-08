@@ -2,14 +2,15 @@
 
 // POST
 
-$header = getallheaders();
+$token = isset($_SERVER['HTTP_X_CSRF_TOKEN']) ? $_SERVER['HTTP_X_CSRF_TOKEN'] : false;
 
-if (!isset($_SESSION['react-token']) || $header['X-CSRF-Token'] != $_SESSION['react-token']) {
+if (!isset($_COOKIE['wp-react-cookie']) || !$token || $token !== apcu_fetch($_COOKIE['wp-react-cookie'])) {
   echo "bad token";
   exit;
 }
 
 $raw = file_get_contents('php://input'); // POSTされた生のデータを受け取る
+
 $data = json_decode($raw); // json形式をphp変数に変換
 
 $res = $data; // やりたい処理

@@ -16,10 +16,16 @@ export async function main(mainProps) {
           
         console.log(await r.text())
       }  
-      
+
+      // 改行を <br/> タグに変換する
+      const memo = mainProps.val2js.acf.memo.replace(/\n/g, '<br/>')
+
       return html`
       <div className="${cssPage}">
-        <div onClick=${handleClick}>てすと ${mainProps.token}</div>
+        <div onClick=${handleClick}>
+          メモ:
+          <div dangerouslySetInnerHTML=${{__html: memo}}></div>
+        </div>
       </div>`
     }
   
