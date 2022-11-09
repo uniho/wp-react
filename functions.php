@@ -16,45 +16,46 @@ define('COOKIE_EXPIRES', 60 * 60 * 24 * 7);
 
 // 初期化処理
 // see: https://qiita.com/kijtra/items/68a06083d25af8b5a119
-function my_after_setup_theme() {
+function unsta_after_setup_theme() {
   //
 }
-add_action('after_setup_theme', 'my_after_setup_theme');
+add_action('after_setup_theme', 'unsta_after_setup_theme');
 
 
 // WP REST API エンドポイント追加
-// index.php?rest_route=/aaa/v1/post-api でアクセスできる。
-function add_my_rest_endpoint(){
-  register_rest_route('aaa/v1', '/post-api/(?P<cmd>[^\/]+)/(?P<arg>*.)', [
+// index.php?rest_route=/unsta/v1/post-api でアクセスできる。
+function unsta_rest_init() {
+  register_rest_route('unsta/v1', '/post-api/(?P<cmd>[\w\d\-]+)\/(?P<arg>.*)', [
     'methods' => 'POST',
-    'callback' => 'aaa_post_api',
+    'callback' => 'unsta_post_api',
   ]);
 }
-function aaa_post_api($request) {
+function unsta_post_api($request) {
   $token = isset($_SERVER['HTTP_X_CSRF_TOKEN']) ? $_SERVER['HTTP_X_CSRF_TOKEN'] : false;
-  $apcu = isset($_COOKIE['wp-react-cookie']) ? apcu_fetch($_COOKIE['wp-react-cookie']) : false;
-  
-  if (!isset($_COOKIE['wp-react-cookie']) || !isset($apcu['token']) || !$token || $token !== $apcu['token']) {
+  $apcu = isset($_COOKIE['unsta-cookie']) ? apcu_fetch($_COOKIE['unsta-cookie']) : false;
+
+  if (!isset($_COOKIE['unsta-cookie']) || !isset($apcu['token']) || !$token || $token !== $apcu['token']) {
     echo "bad token";
     exit;
   }
-  
-  if (!file_exists(get_stylesheet_directory()."/post-cmds/{$request['cmd']}.php")) {
+
+  $cmd = get_stylesheet_directory()."/unsta/php/post-api/cmds/{$request['cmd']}.php";
+  if (!file_exists($cmd)) {
     echo "bad cmd";
     exit;
   }
-  
-  require_once(get_stylesheet_directory()."/post-cmds/{$request['cmd']}.php");
+
+  require_once($cmd);
   return post($request, file_get_contents('php://input'));
 }
-add_action('rest_api_init', 'add_my_rest_endpoint');
+add_action('rest_api_init', 'unsta_rest_init');
 
 
 // DB Table の準備をする SC
 function sc_dbInit_func($atts) {
   global $wpdb;
 
-  $tableName = "{$wpdb->prefix}aaa_config"; //テーブル名
+  $tableName = "{$wpdb->prefix}unsta_config"; //テーブル名
 
   $varchar_max = 65535;
 
@@ -73,7 +74,7 @@ function sc_dbInit_func($atts) {
     $wpdb->query($sql);
   }
 
-  $tableName = "{$wpdb->prefix}aaa_kokyaku"; //テーブル名
+  $tableName = "{$wpdb->prefix}unsta_kokyaku"; //テーブル名
 
   $r = $wpdb->get_results("SHOW TABLES FROM '" . DB_NAME . "' LIKE '$tableName'");
   if (!$r) {
@@ -184,19 +185,19 @@ function sc_ReactJS_func($atts) {
     'func' => 'main',
   ], $atts);
 
-  $jsfile = get_stylesheet_directory() . '/js-srcs/' . $atts['src'];
+  $jsfile = get_stylesheet_directory() . '/unsta/js/srcs/' . $atts['src'];
   if (!$atts['src'] || !file_exists($jsfile)) {
     return 'bad src';
   }
-  $jsfile = get_stylesheet_directory_uri() . '/js-srcs/' . $atts['src'];
+  $jsfile = get_stylesheet_directory_uri() . '/unsta/js/srcs/' . $atts['src'];
   
   $func = $atts['func'];
 
-  $apcu = isset($_COOKIE['wp-react-cookie']) ? apcu_fetch($_COOKIE['wp-react-cookie']) : false;
+  $apcu = isset($_COOKIE['unsta-cookie']) ? apcu_fetch($_COOKIE['unsta-cookie']) : false;
   $token = isset($apcu['token']) ? $apcu['token'] : false;
   if (!$token) {
     $key = md5(uniqid(rand(), TRUE));
-    setcookie('wp-react-cookie', $key, time()+COOKIE_EXPIRES);
+    setcookie('unsta-cookie', $key, time()+COOKIE_EXPIRES);
     $token = md5(uniqid(rand(), TRUE));
     apcu_store($key, ['token' => $token], COOKIE_EXPIRES);
   }

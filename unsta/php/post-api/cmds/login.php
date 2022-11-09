@@ -4,7 +4,7 @@
 function post($request, $body) {
   $data = json_decode($body); // json形式を PHP オブジェクトに変換
 
-  $key = $_COOKIE['wp-react-cookie'];
+  $key = $_COOKIE['unsta-cookie'];
   $apcu = isset($key) ? apcu_fetch($key) : false;
   $uid = isset($apcu['userid']) ? $apcu['userid'] : 0;
   $count = isset($apcu['count']) ? $apcu['count'] : 0;

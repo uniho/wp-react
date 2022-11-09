@@ -3,7 +3,7 @@
 export async function main(mainProps) {
       
   const login = async(e) => {
-    const r = await fetch('index.php?rest_route=aaa/v1/post-api/login/-', {
+    const r = await fetch('index.php?rest_route=/unsta/v1/post-api/login/', {
       method: 'POST', 
       mode: 'cors', credentials: 'include',
       headers: {
