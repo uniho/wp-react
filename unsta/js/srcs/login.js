@@ -1,6 +1,8 @@
 
 // ログインする
-export async function main(mainProps) {
+export async function main(mainProps, mainID) {
+  { const load = await import('../_init_react.js'); await load.default() }
+  const {cssBase} = await import('../style.js')
       
   const login = async(e) => {
     const r = await fetch('index.php?rest_route=/unsta/v1/post-api/login/', {
@@ -24,10 +26,15 @@ export async function main(mainProps) {
   const resource = await login()
 
   //
+  const doLogin = e => {
+
+  }
+
+  //
   const App = props => {
     return html`
-    <div className="${cssPage}">
-      ボタン押す
+    <div className="${cx(cssBase, cssPage)}">
+      <button className="btn--raised" onClick=${doLogin}>ログイン</button>
     </div>`
   }
 
@@ -37,5 +44,6 @@ export async function main(mainProps) {
     }
   `
   
-  return App
+  const root = ReactDOM.createRoot(document.getElementById(mainID))
+  root.render(React.createElement(App))
 }

@@ -178,8 +178,8 @@ function sc_val2js($atts, $content) {
 add_shortcode('val2js', 'sc_val2js');
 
 
-// React 等の準備をする SC
-function sc_ReactJS_func($atts) {
+// React 等で表示する SC
+function sc_jsComponent_func($atts) {
   $atts = shortcode_atts([
     'src' => '',
     'func' => 'main',
@@ -196,9 +196,9 @@ function sc_ReactJS_func($atts) {
   $apcu = isset($_COOKIE['unsta-cookie']) ? apcu_fetch($_COOKIE['unsta-cookie']) : false;
   $token = isset($apcu['token']) ? $apcu['token'] : false;
   if (!$token) {
-    $key = md5(uniqid(rand(), TRUE));
+    $key = md5(uniqid(rand(), true));
     setcookie('unsta-cookie', $key, time()+COOKIE_EXPIRES);
-    $token = md5(uniqid(rand(), TRUE));
+    $token = md5(uniqid(rand(), true));
     apcu_store($key, ['token' => $token], COOKIE_EXPIRES);
   }
 
@@ -207,40 +207,15 @@ function sc_ReactJS_func($atts) {
     "val2js:window._____val2js_____,".
   '}';
 
+  $id = md5(uniqid(rand(), true));
   $src =
-    '<div id="app"></div>'."\n".
+    '<div id="'.$id.'"></div>'."\n".
     '<script type="module">'."\n".
     '(async function _() { '.
-      'if (!window.React || window.React.version.startsWith("17")) {'.
-        'const modules = await Promise.all(['.
-          'import("https://jspm.dev/react@18.3"),'.
-          'import("https://jspm.dev/react-dom@18.3/client"),'.
-        ']); '.
-        'window.React = modules[0].default; '.
-        'window.ReactDOM = modules[1].default; '.
-        'window.Suspense = React.Suspense; '.
-        'window.Fragment = React.Fragment; '.
-      '} '.
-      'if (!window.html) {'.
-        'const modules = await Promise.all(['.
-          'import("https://unpkg.com/htm@3.1?module"),'.
-          'import("https://cdn.skypack.dev/@emotion/css@11?min"),'.
-        ']); '.
-        'const htm = modules[0].default; '.
-        'const {cx, css, keyframes, injectGlobal} = modules[1]; '.
-        'window.html = htm.bind(React.createElement); '.
-        'window.raw = window.styled = String.raw; '.
-        'window.cx = cx; '.
-        'window.css = css; '.
-        'window.keyframes = keyframes; '.
-        'window.injectGlobal = injectGlobal; '.
-      '} '.
       "const src = await import('$jsfile'); ".
-      "const App = await src.$func($props); ".
-      "const root = ReactDOM.createRoot(document.getElementById('app')); " .
-      "root.render(React.createElement(App)); " .
+      "await src.$func($props, '$id'); ".
     "})();\n</script>";
 
   return $src;
 }
-add_shortcode('ReactJS', 'sc_ReactJS_func');
+add_shortcode('jsComponent', 'sc_jsComponent_func');
