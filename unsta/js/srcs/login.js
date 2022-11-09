@@ -10,7 +10,7 @@ export async function main(mainProps, mainID) {
       mode: 'cors', credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
-        'X-CSRF-Token': mainProps.token,
+        'X-CSRF-Token': window.unstaToken,
       }, 
       body: JSON.stringify({
         name: 'fuga', pass: 'hoge',
@@ -33,6 +33,7 @@ export async function main(mainProps, mainID) {
   //
   const App = props => {
     return html`
+    <${ModalSpinner} ref=${e => modalSpinner = e} />
     <div className="${cx(cssBase, cssPage)}">
       <button className="btn--raised" onClick=${doLogin}>ログイン</button>
     </div>`

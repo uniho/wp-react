@@ -13,7 +13,7 @@ export async function main(mainProps, mainID) {
         mode: 'cors', credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
-          'X-CSRF-Token': mainProps.token,
+          'X-CSRF-Token': window.unstaToken,
         }, 
         body: JSON.stringify({ok:'good'}),
       })

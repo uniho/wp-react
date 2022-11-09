@@ -1,20 +1,11 @@
 
+import {Const, Ref, Style} from './namespaces.js'
+
 // 共通スタイル
 
-//
-export const Const = {}
-
-// スマホなら true
-Const.isSmartPhone = document.documentElement.clientWidth < 640;
-
-// タッチデバイスなら true
-Const.isTouchDevice = 
-    ('ontouchstart' in window.document.documentElement) 
-    || window.navigator.maxTouchPoints > 0
-    || window.navigator.msMaxTouchPoints > 0
-
-//
-export const Style = {}
+// デスクトップを指定
+Ref.desktop = React.createRef()
+Ref.desktop.current = document.querySelector('main')
 
 // ブレークポイント
 Style.breakpoint = {

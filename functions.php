@@ -31,15 +31,28 @@ function unsta_rest_init() {
   ]);
 }
 function unsta_post_api($request) {
-  $token = isset($_SERVER['HTTP_X_CSRF_TOKEN']) ? $_SERVER['HTTP_X_CSRF_TOKEN'] : false;
   $apcu = isset($_COOKIE['unsta-cookie']) ? apcu_fetch($_COOKIE['unsta-cookie']) : false;
 
+  $cmd = $request['cmd'];
+  if ($cmd == 'unsta-token') {
+    $token = isset($apcu['token']) ? $apcu['token'] : false;
+    if (!$token) {
+      $key = md5(uniqid(rand(), true));
+      setcookie('unsta-cookie', $key, time()+COOKIE_EXPIRES);
+      $token = md5(uniqid(rand(), true));
+      apcu_store($key, ['token' => $token], COOKIE_EXPIRES);
+    }
+    echo $token;
+    exit;
+  }
+
+  $token = isset($_SERVER['HTTP_X_CSRF_TOKEN']) ? $_SERVER['HTTP_X_CSRF_TOKEN'] : false;
   if (!isset($_COOKIE['unsta-cookie']) || !isset($apcu['token']) || !$token || $token !== $apcu['token']) {
     echo "bad token";
     exit;
   }
 
-  $cmd = get_stylesheet_directory()."/unsta/php/post-api/cmds/{$request['cmd']}.php";
+  $cmd = get_stylesheet_directory()."/unsta/php/post-api/cmds/{$cmd}.php";
   if (!file_exists($cmd)) {
     echo "bad cmd";
     exit;
@@ -193,25 +206,19 @@ function sc_jsComponent_func($atts) {
   
   $func = $atts['func'];
 
-  $apcu = isset($_COOKIE['unsta-cookie']) ? apcu_fetch($_COOKIE['unsta-cookie']) : false;
-  $token = isset($apcu['token']) ? $apcu['token'] : false;
-  if (!$token) {
-    $key = md5(uniqid(rand(), true));
-    setcookie('unsta-cookie', $key, time()+COOKIE_EXPIRES);
-    $token = md5(uniqid(rand(), true));
-    apcu_store($key, ['token' => $token], COOKIE_EXPIRES);
-  }
-
-  $props = '{'.
-    "token:'$token',".
-    "val2js:window._____val2js_____,".
-  '}';
+  $props = "window._____val2js_____";
 
   $id = md5(uniqid(rand(), true));
   $src =
     '<div id="'.$id.'"></div>'."\n".
     '<script type="module">'."\n".
     '(async function _() { '.
+      "if (!window.unstaToken) {".
+        "const r=await fetch('index.php?rest_route=/unsta/v1/post-api/unsta-token/-', {".
+          "method: 'POST', mode: 'cors', credentials: 'include',".
+        "}); ".
+        "window.unstaToken=await r.text(); ".
+      "} ".
       "const src = await import('$jsfile'); ".
       "await src.$func($props, '$id'); ".
     "})();\n</script>";
