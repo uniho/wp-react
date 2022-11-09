@@ -11,12 +11,43 @@
 // * 長さパラメータを受け付けるすべてのフィールドに長さを指定すること。例えば int(11) のように。      dbDelta($sql);
 require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
 
+// クッキーの持続期間
+define('COOKIE_EXPIRES', 60 * 60 * 24 * 7);
+
 // 初期化処理
-// 
+// see: https://qiita.com/kijtra/items/68a06083d25af8b5a119
 function my_after_setup_theme() {
   //
 }
 add_action('after_setup_theme', 'my_after_setup_theme');
+
+
+// WP REST API エンドポイント追加
+// index.php?rest_route=/aaa/v1/post-api でアクセスできる。
+function add_my_rest_endpoint(){
+  register_rest_route('aaa/v1', '/post-api/(?P<cmd>[^\/]+)/(?P<arg>*.)', [
+    'methods' => 'POST',
+    'callback' => 'aaa_post_api',
+  ]);
+}
+function aaa_post_api($request) {
+  $token = isset($_SERVER['HTTP_X_CSRF_TOKEN']) ? $_SERVER['HTTP_X_CSRF_TOKEN'] : false;
+  $apcu = isset($_COOKIE['wp-react-cookie']) ? apcu_fetch($_COOKIE['wp-react-cookie']) : false;
+  
+  if (!isset($_COOKIE['wp-react-cookie']) || !isset($apcu['token']) || !$token || $token !== $apcu['token']) {
+    echo "bad token";
+    exit;
+  }
+  
+  if (!file_exists(get_stylesheet_directory()."/post-cmds/{$request['cmd']}.php")) {
+    echo "bad cmd";
+    exit;
+  }
+  
+  require_once(get_stylesheet_directory()."/post-cmds/{$request['cmd']}.php");
+  return post($request, file_get_contents('php://input'));
+}
+add_action('rest_api_init', 'add_my_rest_endpoint');
 
 
 // DB Table の準備をする SC
@@ -137,8 +168,7 @@ add_shortcode('postData2js', 'sc_postData2js');
 //    json_decode($bad_json); // null
 function sc_val2js($atts, $content) {
   $content = trim(do_shortcode($content));
-  $content = ltrim($content, '<script>');
-  $content = rtrim($content, '</script>');
+  $content = preg_replace('/<\/?script>/', '', $content);
 
   $data = json_decode($content); // json形式をphp連想配列に変換
   $json = json_encode($data); // php連想配列をjson形式に変換
@@ -150,25 +180,28 @@ add_shortcode('val2js', 'sc_val2js');
 // React 等の準備をする SC
 function sc_ReactJS_func($atts) {
   $atts = shortcode_atts([
-    'src' => 'react.js',
+    'src' => '',
     'func' => 'main',
   ], $atts);
 
-  $jsfile = get_stylesheet_directory_uri() . '/' . $atts['src'];
+  $jsfile = get_stylesheet_directory() . '/js-srcs/' . $atts['src'];
+  if (!$atts['src'] || !file_exists($jsfile)) {
+    return 'bad src';
+  }
+  $jsfile = get_stylesheet_directory_uri() . '/js-srcs/' . $atts['src'];
+  
   $func = $atts['func'];
 
   $apcu = isset($_COOKIE['wp-react-cookie']) ? apcu_fetch($_COOKIE['wp-react-cookie']) : false;
   $token = isset($apcu['token']) ? $apcu['token'] : false;
   if (!$token) {
-    $expires = 60 * 60 * 24 * 7;
     $key = md5(uniqid(rand(), TRUE));
-    setcookie('wp-react-cookie', $key, time()+$expires);
+    setcookie('wp-react-cookie', $key, time()+COOKIE_EXPIRES);
     $token = md5(uniqid(rand(), TRUE));
-    apcu_store($key, ['token' => $token], $expires);
+    apcu_store($key, ['token' => $token], COOKIE_EXPIRES);
   }
 
   $props = '{'.
-    "postURI:'".get_stylesheet_directory_uri()."',".
     "token:'$token',".
     "val2js:window._____val2js_____,".
   '}';
@@ -177,7 +210,7 @@ function sc_ReactJS_func($atts) {
     '<div id="app"></div>'."\n".
     '<script type="module">'."\n".
     '(async function _() { '.
-      'if (!window.React) {'.
+      'if (!window.React || window.React.version.startsWith("17")) {'.
         'const modules = await Promise.all(['.
           'import("https://jspm.dev/react@18.3"),'.
           'import("https://jspm.dev/react-dom@18.3/client"),'.

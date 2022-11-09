@@ -4,7 +4,7 @@ export async function main(mainProps) {
     const App = props => {
         
       const handleClick = async(e) => {
-        const r = await fetch(mainProps.postURI+'/post.php', {
+        const r = await fetch('index.php?rest_route=aaa/v1/post-api/test/123', {
           method: 'POST', 
           mode: 'cors', credentials: 'include',
           headers: {
