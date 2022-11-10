@@ -100,7 +100,7 @@ function sc_dbInit_func($atts) {
       k_furi varchar($varchar_max),
       k_tel varchar($varchar_max),
       k_name varchar($varchar_max),
-      k_version int(11) unsigned,
+      k_version bigint(20) unsigned,
       k_json longtext,
       PRIMARY KEY  (k_id),
       UNIQUE KEY index_no (k_no),
