@@ -61,7 +61,7 @@ const Page = props => {
     
     modalSpinner.show('ログイン中です...')
     try {
-      const r = await fetch('/index.php?rest_route=/unsta/v1/post-api/login/-', {
+      const r = await fetch('index.php?rest_route=/unsta/v1/post-api/login/-', {
         method: 'POST', 
         mode: 'cors', credentials: 'include',
         headers: {

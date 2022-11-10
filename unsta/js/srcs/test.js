@@ -8,7 +8,7 @@ export async function main(mainProps, mainID) {
   const App = props => {
       
     const handleClick = async(e) => {
-      const r = await fetch('/index.php?rest_route=/unsta/v1/post-api/test/123', {
+      const r = await fetch('index.php?rest_route=/unsta/v1/post-api/test/123', {
         method: 'POST', 
         mode: 'cors', credentials: 'include',
         headers: {
