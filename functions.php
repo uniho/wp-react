@@ -193,7 +193,7 @@ add_shortcode('val2js', 'sc_val2js');
 
 
 // React 等で表示する SC
-function sc_jsComponent_func($atts) {
+function sc_jsApp_func($atts) {
   $atts = shortcode_atts([
     'src' => '',
     'func' => 'main',
@@ -237,4 +237,4 @@ function sc_jsComponent_func($atts) {
 
   return $src;
 }
-add_shortcode('jsComponent', 'sc_jsComponent_func');
+add_shortcode('jsApp', 'sc_jsApp_func');
