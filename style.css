@@ -10,3 +10,40 @@ Version:  1.0
 License:  GNU General Public License v2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html                 
 */
+
+.flex {
+  display: flex;
+}
+.flex-col {
+  display: flex;
+  flex-direction: column;
+}
+
+.mt-1 {
+  margin-top: .25rem;	
+}
+.mt-2 {
+  margin-top: .5rem;	
+}
+.mt-3 {
+  margin-top: .75rem;	
+}
+.mt-4 {
+  margin-top: 1rem;	
+}
+.mt-5 {
+  margin-top: 1.25rem;	
+}
+.mt-6 {
+  margin-top: 1.5rem;	
+}
+.mt-7 {
+  margin-top: 1.75rem;	
+}
+.mt-8 {
+  margin-top: 2rem;	
+}
+
+.w-full {
+  width: 100%;
+}

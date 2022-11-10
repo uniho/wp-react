@@ -33,12 +33,12 @@ const spinner3Style = css`
 `
 
 const spinner3 = html`<${React.Fragment}>
-  <div class=${spinner3Style}>
-    <div class="rect1"></div>
-    <div class="rect2"></div>
-    <div class="rect3"></div>
-    <div class="rect4"></div>
-    <div class="rect5"></div>
+  <div className=${spinner3Style}>
+    <div className="rect1"></div>
+    <div className="rect2"></div>
+    <div className="rect3"></div>
+    <div className="rect4"></div>
+    <div className="rect5"></div>
   </div>
 <//>`
 
@@ -213,6 +213,8 @@ export const ModalSpinner = class extends React.Component {
     window.scrollTo(0, 0) // 念の為強制スクロール
 
     const style = {
+      display: 'flex',
+      flexDirection: 'column',
       position: 'absolute',
       top: '40vh', left: '50%',
       transform: 'translate(-50%, -50%)',
@@ -229,15 +231,15 @@ export const ModalSpinner = class extends React.Component {
     const msg = this.state.message
 
     return ReactDOM.createPortal(html`
-    <div class="modal-desktop">
-      <x-flex-col style=${style}>
-        <x-flex css-style="margin-top:1rem; justify-content:center;">
+    <div className="modal-desktop">
+      <div style=${style}>
+        <div style=${{display:'flex', marginTop:'1rem', justifyContent:'center'}}>
           ${msg ? msg : ''}
-        </x-flex>
-        <x-flex css-style="margin-top:2rem; justify-content:center;">
+        </div>
+        <div style=${{display:'flex', marginTop:'2rem', justifyContent:'center'}}>
           ${spinner3}
-        </x-flex>
-      </x-flex-col>
+        </div>
+      </div>
     </div>
     `, Ref.desktop
     )

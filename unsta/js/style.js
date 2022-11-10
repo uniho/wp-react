@@ -3,10 +3,6 @@ import {Const, Ref, Style} from './namespaces.js'
 
 // 共通スタイル
 
-// デスクトップを指定
-Ref.desktop = React.createRef()
-Ref.desktop.current = document.querySelector('main')
-
 // ブレークポイント
 Style.breakpoint = {
   sm: 640,
@@ -21,15 +17,15 @@ Style.fontFamily = '"Open Sans", Verdana, Roboto, "Droid Sans", "ヒラギノ角
 Style.greyNum = n => `rgb(${n*16+0x0e},${n*16+0x0e},${n*16+0x0e})`;
 
 // テーマカラー
-Style.primary = "#7fbfff"; 
+Style.primary = "var(--wp--preset--color--primary)"; 
 Style.primaryDark = "#007fff";
 Style.primaryLight = "#a8d3ff";
-Style.secondary = "#bf7fff";
+Style.secondary = "var(--wp--preset--color--secondary)";
 Style.secondaryDark = "#7f7fff";
 Style.secondaryLight = "#ff5f52";
 
 Style.background = "white"; // 文字の背景色
-Style.textColor = Style.greyNum(0x5); // 文字色
+Style.textColor = "var(--wp--preset--color--contrast)"; // 文字色
 Style.textLight = Style.greyNum(0xa); // 薄めの文字色
 Style.textDark = "black"; // 濃い目の文字色
 Style.textDisable = "rgba(0,0,0,.38)"; // Disable の文字色
@@ -55,6 +51,26 @@ Style.greyLight = Style.greyNum(0xd);
 
 //
 export const cssBase = css`
+
+/* DialogBox など用 */
+.modal-desktop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0);
+}
+
+.modal-system {
+  position: fixed;
+  z-index: 99;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, .7);
+}
 
 /* button 関係 */
 

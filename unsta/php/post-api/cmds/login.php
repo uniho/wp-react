@@ -9,7 +9,7 @@ function post($request, $body) {
   $uid = isset($apcu['userid']) ? $apcu['userid'] : 0;
   $count = isset($apcu['count']) ? $apcu['count'] : 0;
 
-  if ($data->name && $data->pass) {
+  if ($data->name == 'abcd' && $data->pass == '1234') {
     // ログイン成功
     $apcu['userid'] = 1;
     $apcu['count'] = 0; // チャレンジ回数をリセット

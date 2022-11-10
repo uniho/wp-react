@@ -22,6 +22,13 @@ function unsta_after_setup_theme() {
 add_action('after_setup_theme', 'unsta_after_setup_theme');
 
 
+// style.css の読み込み
+function unsta_enqueue_styles() {
+  wp_enqueue_style('unsta-style', get_stylesheet_uri());
+}
+add_action('wp_enqueue_scripts', 'unsta_enqueue_styles');
+
+
 // WP REST API エンドポイント追加
 // index.php?rest_route=/unsta/v1/post-api でアクセスできる。
 function unsta_rest_init() {
@@ -37,25 +44,19 @@ function unsta_post_api($request) {
   if ($cmd == 'unsta-token') {
     $token = isset($apcu['token']) ? $apcu['token'] : false;
     if (!$token) {
-      $key = md5(uniqid(rand(), true));
-      setcookie('unsta-cookie', $key, time()+COOKIE_EXPIRES);
-      $token = md5(uniqid(rand(), true));
-      apcu_store($key, ['token' => $token], COOKIE_EXPIRES);
+      return new WP_HTTP_Response('no token', 400);
     }
-    echo $token;
-    exit;
+    return ['unstaToken' => $token];
   }
 
   $token = isset($_SERVER['HTTP_X_CSRF_TOKEN']) ? $_SERVER['HTTP_X_CSRF_TOKEN'] : false;
-  if (!isset($_COOKIE['unsta-cookie']) || !isset($apcu['token']) || !$token || $token !== $apcu['token']) {
-    echo "bad token";
-    exit;
+  if (!isset($apcu['token']) || !$token || $token !== $apcu['token']) {
+    return new WP_HTTP_Response('bad token', 400);
   }
 
   $cmd = get_stylesheet_directory()."/unsta/php/post-api/cmds/{$cmd}.php";
   if (!file_exists($cmd)) {
-    echo "bad cmd";
-    exit;
+    return new WP_HTTP_Response('bad cmd', 400);
   }
 
   require_once($cmd);
@@ -208,6 +209,15 @@ function sc_jsComponent_func($atts) {
 
   $props = "window._____val2js_____";
 
+  $apcu = isset($_COOKIE['unsta-cookie']) ? apcu_fetch($_COOKIE['unsta-cookie']) : false;
+  $token = isset($apcu['token']) ? $apcu['token'] : false;
+  if (!$token) {
+    $key = md5(uniqid(rand(), true));
+    setcookie('unsta-cookie', $key, time()+COOKIE_EXPIRES);
+    $token = md5(uniqid(rand(), true));
+    apcu_store($key, ['token' => $token], COOKIE_EXPIRES);
+  }
+
   $id = md5(uniqid(rand(), true));
   $src =
     '<div id="'.$id.'"></div>'."\n".
@@ -216,8 +226,10 @@ function sc_jsComponent_func($atts) {
       "if (!window.unstaToken) {".
         "const r=await fetch('index.php?rest_route=/unsta/v1/post-api/unsta-token/-', {".
           "method: 'POST', mode: 'cors', credentials: 'include',".
+          "headers:{'Content-Type': 'application/json'},". 
         "}); ".
-        "window.unstaToken=await r.text(); ".
+        "const json=await r.json(); ".
+        "window.unstaToken=json.unstaToken; ".
       "} ".
       "const src = await import('$jsfile'); ".
       "await src.$func($props, '$id'); ".

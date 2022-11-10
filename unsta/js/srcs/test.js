@@ -39,6 +39,6 @@ export async function main(mainProps, mainID) {
     }
   `
     
-  const root = ReactDOM.createRoot(document.getElementById(mainID))
+  const root = createRoot(document.getElementById(mainID))
   root.render(React.createElement(App))
 }

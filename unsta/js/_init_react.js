@@ -3,10 +3,12 @@ export default async function () {
   if (!window.React || window.React.version.startsWith("17")) {
     const modules = await Promise.all([
       import("https://jspm.dev/react@18.3"),
+      import("https://jspm.dev/react-dom@18.3"),
       import("https://jspm.dev/react-dom@18.3/client"),
     ])
     window.React = modules[0].default
     window.ReactDOM = modules[1].default
+    window.createRoot = modules[2].createRoot
     window.Suspense = React.Suspense
     window.Fragment = React.Fragment
   }
