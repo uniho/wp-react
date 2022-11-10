@@ -17,7 +17,7 @@ export default props => {
 
 const resource = (async function() {
   const res = {}
-  res.userResponce = await fetch('index.php?rest_route=/unsta/v1/post-api/current-user/-', {
+  res.userResponce = await fetch('/index.php?rest_route=/unsta/v1/post-api/current-user/-', {
     method: 'POST', 
     mode: 'cors', credentials: 'include',
     headers: {

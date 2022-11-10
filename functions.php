@@ -224,7 +224,7 @@ function sc_jsComponent_func($atts) {
     '<script type="module">'."\n".
     '(async function _() { '.
       "if (!window.unstaToken) {".
-        "const r=await fetch('index.php?rest_route=/unsta/v1/post-api/unsta-token/-', {".
+        "const r=await fetch('/index.php?rest_route=/unsta/v1/post-api/unsta-token/-', {".
           "method: 'POST', mode: 'cors', credentials: 'include',".
           "headers:{'Content-Type': 'application/json'},". 
         "}); ".
