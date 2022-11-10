@@ -32,7 +32,7 @@ add_action('wp_enqueue_scripts', 'unsta_enqueue_styles');
 // WP REST API エンドポイント追加
 // index.php?rest_route=/unsta/v1/post-api でアクセスできる。
 function unsta_rest_init() {
-  register_rest_route('unsta/v1', '/post-api/(?P<cmd>[\w\d\-]+)\/(?P<arg>.*)', [
+  register_rest_route('unsta/v1', '/post-api/(?P<cmd>[\\w\\d\\-]+)\\/(?P<arg>.*)', [
     'methods' => 'POST',
     'callback' => 'unsta_post_api',
   ]);
