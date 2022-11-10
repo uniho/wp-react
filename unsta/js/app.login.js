@@ -8,6 +8,7 @@ import IconEyeOff from './icons/eye-off.js'
 
 // ログイン App
 export default props => {
+  Const.uri = props.uri
   return html`
   <div className=${cssBase} ref=${e => Ref.desktop = e}>
     <${Page}/>
@@ -61,7 +62,7 @@ const Page = props => {
     
     modalSpinner.show('ログイン中です...')
     try {
-      const r = await fetch('index.php?rest_route=/unsta/v1/post-api/login/-', {
+      const r = await fetch(Const.uri + '?rest_route=/unsta/v1/post-api/login/-', {
         method: 'POST', 
         mode: 'cors', credentials: 'include',
         headers: {

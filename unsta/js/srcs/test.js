@@ -1,5 +1,5 @@
 
-export async function main(mainProps, mainID) {
+export async function main(mainProps) {
   { const load = await import('../_init_react.js'); await load.default() }
   const {cssBase} = await import('../style.js')
 
@@ -8,7 +8,7 @@ export async function main(mainProps, mainID) {
   const App = props => {
       
     const handleClick = async(e) => {
-      const r = await fetch('index.php?rest_route=/unsta/v1/post-api/test/123', {
+      const r = await fetch(props.uri + '?rest_route=/unsta/v1/post-api/test/123', {
         method: 'POST', 
         mode: 'cors', credentials: 'include',
         headers: {
@@ -39,6 +39,6 @@ export async function main(mainProps, mainID) {
     }
   `
     
-  const root = createRoot(document.getElementById(mainID))
-  root.render(React.createElement(App))
+  const root = createRoot(document.getElementById(mainProps.rootid))
+  root.render(React.createElement(App, mainProps))
 }

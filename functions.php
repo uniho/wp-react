@@ -196,7 +196,7 @@ add_shortcode('val2js', 'sc_val2js');
 
 
 // React 等で表示する SC
-function sc_jsApp_func($atts) {
+add_shortcode('jsApp', function ($atts) {
   $atts = shortcode_atts([
     'src' => '',
     'func' => 'main',
@@ -210,7 +210,9 @@ function sc_jsApp_func($atts) {
   
   $func = $atts['func'];
 
-  $props = "window._____val2js_____";
+  $uri = home_url();
+  $rootid = md5(uniqid(rand(), true));
+  $props = "{ uri:'$uri', rootid:'$rootid', }";
 
   $apcu = isset($_COOKIE['unsta-cookie']) ? apcu_fetch($_COOKIE['unsta-cookie']) : false;
   $token = isset($apcu['token']) ? $apcu['token'] : false;
@@ -221,13 +223,12 @@ function sc_jsApp_func($atts) {
     apcu_store($key, ['token' => $token], COOKIE_EXPIRES);
   }
 
-  $id = md5(uniqid(rand(), true));
   $src =
-    '<div id="'.$id.'"></div>'."\n".
+    '<div id="'.$rootid.'"></div>'."\n".
     '<script type="module">'."\n".
     '(async function _() { '.
       "if (!window.unstaToken) {".
-        "const r=await fetch('index.php?rest_route=/unsta/v1/post-api/unsta-token/-', {".
+        "const r=await fetch('$uri/?rest_route=/unsta/v1/post-api/unsta-token/-', {".
           "method: 'POST', mode: 'cors', credentials: 'include',".
           "headers:{'Content-Type': 'application/json'},". 
         "}); ".
@@ -235,9 +236,8 @@ function sc_jsApp_func($atts) {
         "window.unstaToken=json.unstaToken; ".
       "} ".
       "const src = await import('$jsfile'); ".
-      "await src.$func($props, '$id'); ".
+      "await src.$func($props); ".
     "})();\n</script>";
 
   return $src;
-}
-add_shortcode('jsApp', 'sc_jsApp_func');
+});

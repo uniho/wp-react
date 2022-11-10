@@ -6,6 +6,7 @@ import {Snackbar} from './parts.snackbar.js'
 
 // User Home App
 export default props => {
+  Const.uri = props.uri
   return html`
   <div className=${cssBase} ref=${e => Ref.desktop = e}>
     <${Suspense} fallback=${html`<div>...</div>`}>
@@ -17,7 +18,7 @@ export default props => {
 
 const resource = (async function() {
   const res = {}
-  res.userResponce = await fetch('index.php?rest_route=/unsta/v1/post-api/current-user/-', {
+  res.userResponce = await fetch(Const.uri + '?rest_route=/unsta/v1/post-api/current-user/-', {
     method: 'POST', 
     mode: 'cors', credentials: 'include',
     headers: {
@@ -40,7 +41,7 @@ let modalSpinner, snackbar;
 const doLogoff = async(e) => {
   modalSpinner.show('ログオフ中です...')
   try {
-    const r = await fetch('index.php?rest_route=/unsta/v1/post-api/logoff/-', {
+    const r = await fetch(Const.uri + '?rest_route=/unsta/v1/post-api/logoff/-', {
       method: 'POST', 
       mode: 'cors', credentials: 'include',
       headers: {
