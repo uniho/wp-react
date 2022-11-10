@@ -8,7 +8,8 @@
 // * フィールド名のまわりにアポストロフィ（'）やバッククォート（`）を使ってはいけません。
 // * フィールドタイプはすべて小文字であること。
 // * SQL キーワード、例えば CREATE TABLE や UPDATE は、大文字であること。
-// * 長さパラメータを受け付けるすべてのフィールドに長さを指定すること。例えば int(11) のように。      dbDelta($sql);
+// * 長さパラメータを受け付けるすべてのフィールドに長さを指定すること。例えば int(11) のように。
+// wp-admin/includes/schema.php を参照せよ
 require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
 
 // クッキーの持続期間
@@ -76,8 +77,9 @@ function sc_dbInit_func($atts) {
   $r = $wpdb->get_results("SHOW TABLES FROM '" . DB_NAME . "' LIKE '$tableName'");
   if (!$r) {
     $sql = "CREATE TABLE {$tableName} (
-      cfg_key varchar(20)  PRIMARY KEY,
-      cfg_val varchar($varchar_max)
+      cfg_key varchar(20),
+      cfg_val longtext,
+      PRIMARY KEY  (cfg_key)
     ) {$wpdb->get_charset_collate()};";
     dbDelta($sql);
   
@@ -93,13 +95,14 @@ function sc_dbInit_func($atts) {
   $r = $wpdb->get_results("SHOW TABLES FROM '" . DB_NAME . "' LIKE '$tableName'");
   if (!$r) {
     $sql = "CREATE TABLE {$tableName} (
-      k_id int(11) unsigned  PRIMARY KEY  AUTO_INCREMENT,
-      k_no int(11) unsigned,
+      k_id int(11) unsigned NOT NULL auto_increment,
+      k_no int(11) unsigned NOT NULL,
       k_furi varchar($varchar_max),
       k_tel varchar($varchar_max),
       k_name varchar($varchar_max),
       k_version int(11) unsigned,
-      k_json varchar($varchar_max),
+      k_json longtext,
+      PRIMARY KEY  (k_id),
       UNIQUE KEY index_no (k_no),
       KEY index_furi (k_furi),
       KEY index_tel (k_tel)
