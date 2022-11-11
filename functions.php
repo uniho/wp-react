@@ -17,62 +17,60 @@ define('COOKIE_EXPIRES', 60 * 60 * 24 * 7);
 
 // 初期化処理
 // see: https://qiita.com/kijtra/items/68a06083d25af8b5a119
-function unsta_after_setup_theme() {
+add_action('after_setup_theme', function() {
   //
-}
-add_action('after_setup_theme', 'unsta_after_setup_theme');
+});
 
 
 // style.css の読み込み
-function unsta_enqueue_styles() {
+add_action('wp_enqueue_scripts', function() {
   wp_enqueue_style('unsta-style', get_stylesheet_uri());
-}
-add_action('wp_enqueue_scripts', 'unsta_enqueue_styles');
-
+});
 
 // WP REST API エンドポイント追加
 // index.php?rest_route=/unsta/v1/post-api でアクセスできる。
-function unsta_rest_init() {
+add_action('rest_api_init', function() {
   register_rest_route('unsta/v1', '/post-api/(?P<cmd>[\\w\\d\\-]+)\\/(?P<arg>.*)', [
     'methods' => 'POST',
-    'callback' => 'unsta_post_api',
-  ]);
-}
-function unsta_post_api($request) {
-  $apcu = isset($_COOKIE['unsta-cookie']) ? apcu_fetch($_COOKIE['unsta-cookie']) : false;
+    'callback' => function($request) {
+      $apcu = isset($_COOKIE['unsta-cookie']) ? apcu_fetch($_COOKIE['unsta-cookie']) : false;
 
-  $cmd = $request['cmd'];
-  if ($cmd == 'unsta-token') {
-    $token = isset($apcu['token']) ? $apcu['token'] : false;
-    if (!$token) {
-      return new WP_HTTP_Response('no token', 400);
+      $cmd = $request['cmd'];
+      if ($cmd == 'unsta-token') {
+        $token = isset($apcu['token']) ? $apcu['token'] : false;
+        if (!$token) {
+          sleep(10);
+          return new WP_HTTP_Response('no token', 400);
+        }
+        return ['unstaToken' => $token];
+      }
+
+      $token = isset($_SERVER['HTTP_X_CSRF_TOKEN']) ? $_SERVER['HTTP_X_CSRF_TOKEN'] : false;
+      if (!isset($apcu['token']) || !$token || $token !== $apcu['token']) {
+        sleep(10);
+        return new WP_HTTP_Response('bad token', 400);
+      }
+
+      $cmd = get_stylesheet_directory()."/unsta/php/post-api/cmds/{$cmd}.php";
+      if (!file_exists($cmd)) {
+        return new WP_HTTP_Response('bad cmd', 400);
+      }
+
+      require_once($cmd);
+      return post($request, file_get_contents('php://input'));
     }
-    return ['unstaToken' => $token];
-  }
-
-  $token = isset($_SERVER['HTTP_X_CSRF_TOKEN']) ? $_SERVER['HTTP_X_CSRF_TOKEN'] : false;
-  if (!isset($apcu['token']) || !$token || $token !== $apcu['token']) {
-    return new WP_HTTP_Response('bad token', 400);
-  }
-
-  $cmd = get_stylesheet_directory()."/unsta/php/post-api/cmds/{$cmd}.php";
-  if (!file_exists($cmd)) {
-    return new WP_HTTP_Response('bad cmd', 400);
-  }
-
-  require_once($cmd);
-  return post($request, file_get_contents('php://input'));
-}
-add_action('rest_api_init', 'unsta_rest_init');
+  ]); }
+);
 
 
 // DB Table の準備をする SC
-function sc_dbInit_func($atts) {
+add_shortcode('dbInit', function($atts) {
   global $wpdb;
 
-  $tableName = "{$wpdb->prefix}unsta_config"; //テーブル名
-
   $varchar_max = 65535;
+
+  //
+  $tableName = "{$wpdb->prefix}unsta_config"; //テーブル名
 
   $r = $wpdb->get_results("SHOW TABLES FROM '" . DB_NAME . "' LIKE '$tableName'");
   if (!$r) {
@@ -90,6 +88,24 @@ function sc_dbInit_func($atts) {
     $wpdb->query($sql);
   }
 
+  //
+  $tableName = "{$wpdb->prefix}unsta_blacklist"; //テーブル名
+
+  $r = $wpdb->get_results("SHOW TABLES FROM '" . DB_NAME . "' LIKE '$tableName'");
+  if (!$r) {
+    $sql = "CREATE TABLE {$tableName} (
+      bl_host varchar($varchar_max),
+      bl_start timestamp,
+      bl_expired bigint(20) unsigned,
+      bl_version bigint(20) unsigned,
+      bl_json longtext,
+      PRIMARY KEY  (bl_host),
+      KEY index_start (bl_start)
+    ) {$wpdb->get_charset_collate()};";
+    dbDelta($sql);
+  }
+
+  //
   $tableName = "{$wpdb->prefix}unsta_kokyaku"; //テーブル名
 
   $r = $wpdb->get_results("SHOW TABLES FROM '" . DB_NAME . "' LIKE '$tableName'");
@@ -109,12 +125,11 @@ function sc_dbInit_func($atts) {
     ) {$wpdb->get_charset_collate()};";
     dbDelta($sql);
   }
-}
-add_shortcode('dbInit', 'sc_dbInit_func' );
+});
 
 
 // SQL を実行する SC
-function sc_sql_func($atts) {
+add_shortcode('sql', function($atts) {
   if (!isset($atts['sql'])) return 'no sql';
   
   global $wpdb;
@@ -124,24 +139,22 @@ function sc_sql_func($atts) {
 
   $r = $wpdb->get_results($sql);
   return json_encode($r);
-}
-add_shortcode('sql', 'sc_sql_func' );
+});
 
 
 // ACF から値を取得する SC
-function sc_acf_func($atts) {
+add_shortcode('acf', function($atts) {
   if (isset($atts['field'])) {
     return get_field($atts['field']);
   }
 
   // 全フィールドの取得
   return json_encode(get_fields());
-}
-add_shortcode('acf', 'sc_acf_func' );
+});
 
 
 // 
-function sc_test_func() {
+add_shortcode('scTest', function() {
   // $token = (session_status() == 2 && isset($_SESSION['react-token'])) ? $_SESSION['react-token'] : false;
   // if (!$token) {
   //   session_start();
@@ -150,25 +163,22 @@ function sc_test_func() {
   // }
   $obj = get_queried_object();  //現在表示しているページのオブジェクトを取得
   return json_encode($obj);
-}
-add_shortcode('scTest', 'sc_test_func' );
+});
 
 
 // 現在表示しているページのオブジェクトを json 形式で返す SC 
-function sc_page2js_func() {
+add_shortcode('page2js', function() {
   $obj = get_queried_object();  //現在表示しているページのオブジェクトを取得
   return json_encode($obj);
-}
-add_shortcode('page2js', 'sc_page2js_func' );
+});
 
 
 // POST された Data を JSON 形式で返す SC
-function sc_postData2js() {
+add_shortcode('postData2js', function() {
   $raw = file_get_contents('php://input'); // POSTされた生のデータを受け取る
   $data = json_decode($raw); // json形式をphp連想配列に変換
   return json_encode($data); // php連想配列をjson形式に変換
-}
-add_shortcode('postData2js', 'sc_postData2js');
+});
 
 
 // カスタムHTML から JavaScript に値を渡す SC
@@ -184,15 +194,14 @@ add_shortcode('postData2js', 'sc_postData2js');
 // * 最後にカンマをつけてはいけません
 //    $bad_json = '{ "bar": "baz", }';
 //    json_decode($bad_json); // null
-function sc_val2js($atts, $content) {
+add_shortcode('val2js', function($atts, $content) {
   $content = trim(do_shortcode($content));
   $content = preg_replace('/<\/?script>/', '', $content);
 
   $data = json_decode($content); // json形式をphp連想配列に変換
   $json = json_encode($data); // php連想配列をjson形式に変換
   return '<script>window._____val2js_____ = '. $json .';</script>';
-}
-add_shortcode('val2js', 'sc_val2js');
+});
 
 
 // React 等で表示する SC
@@ -241,3 +250,32 @@ add_shortcode('jsApp', function ($atts) {
 
   return $src;
 });
+
+
+//
+class Unsta {
+  // public static $stNum = 0;
+  // public $num = 0;
+
+  // ブラックリストに登録されているかどうかチェック
+  // 戻り値: 
+  public static function inBlackList($addr) {
+    return 'test1';
+  }
+
+  // ブラックリストに登録する
+  // $expired: 制限する秒数
+  public static function addBlackList($addr, $expired) {
+    return 'test1';
+  }
+
+  public static function currentUser() {
+    $key = $_COOKIE['unsta-cookie'];
+    $apcu = isset($key) ? apcu_fetch($key) : false;
+    return [
+      'uid' => isset($apcu['userid']) ? (int)$apcu['userid'] : 0,
+      'count' => isset($apcu['count']) ? (int)$apcu['count'] : 0,
+    ];
+  }
+}
+

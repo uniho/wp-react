@@ -1,6 +1,6 @@
 <?php
 
-// ログイン処理
+// パスワードリセット処理
 function post($request, $body) {
   $data = json_decode($body); // json形式を PHP オブジェクトに変換
 

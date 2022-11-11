@@ -62,23 +62,28 @@ const Page = props => {
     
     modalSpinner.show('ログイン中です...')
     try {
-      const r = await fetch(Const.uri + '?rest_route=/unsta/v1/post-api/login/-', {
-        method: 'POST', 
-        mode: 'cors', credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRF-Token': window.unstaToken,
-        }, 
-        body: JSON.stringify({
-          name: state.user, pass: state.pass,
-        }),
-      })
-
-      if (r.status == 200 || r.status == 403) {
-        // 成功
-        location.href = 'index.php?page_id=190'
-      } else {
-        snackbar.show('登録されていません。abcd 1234')
+      try {
+        const r = await fetch(Const.uri + '/?rest_route=/unsta/v1/post-api/login/-', {
+          method: 'POST', 
+          mode: 'cors', credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': window.unstaToken,
+          }, 
+          body: JSON.stringify({
+            name: state.user, pass: state.pass,
+          }),
+        })
+  
+        if (r.status == 200 || r.status == 403) {
+          // 成功
+          location.href = 'index.php?page_id=190'
+        } else {
+          const message = await r.json()
+          throw new Error(message + ' hint: abcd 1234')
+        }
+      } catch(e) {
+        snackbar.show(e.message)
       }
     } finally {
       modalSpinner.hide()
