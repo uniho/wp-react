@@ -18,11 +18,9 @@ export default props => {
 
 const resource = (async function() {
   const res = {}
-  res.userResponce = await fetch(Const.uri + '/?rest_route=/unsta/v1/post-api/current-user/-', {
-    method: 'POST', 
+  res.userResponce = await fetch(Const.uri + '/?rest_route=/unsta/v1/api/current-user/-', {
     mode: 'cors', credentials: 'include',
     headers: {
-      'Content-Type': 'application/json',
       'X-CSRF-Token': window.unstaToken,
     }, 
   })
@@ -30,6 +28,22 @@ const resource = (async function() {
   if (res.userResponce.ok) {
     const json = await res.userResponce.json()
     res.user = json.data
+
+    if (res.user?.id) {
+      // touch 履歴を取得
+      res.touchResponce = await fetch(Const.uri + '/?rest_route=/unsta/v1/api/query-wp-post/-', {
+        mode: 'cors', credentials: 'include',
+        headers: {
+          'X-CSRF-Token': window.unstaToken,
+        }, 
+      })
+    
+      if (res.touchResponce.ok) {
+        const json = await res.touchResponce.json()
+        res.touch = json.data
+        console.log(res.touch)
+      }
+    }  
   }
 
   return res
@@ -41,11 +55,9 @@ let modalSpinner, snackbar;
 const doLogoff = async(e) => {
   modalSpinner.show('ログオフ中です...')
   try {
-    const r = await fetch(Const.uri + '/?rest_route=/unsta/v1/post-api/logoff/-', {
-      method: 'POST', 
+    const r = await fetch(Const.uri + '/?rest_route=/unsta/v1/api/logoff/-', {
       mode: 'cors', credentials: 'include',
       headers: {
-        'Content-Type': 'application/json',
         'X-CSRF-Token': window.unstaToken,
       }, 
     })
@@ -63,8 +75,14 @@ const Page = props => {
   <${ModalSpinner} ref=${e => modalSpinner = e} />
   <${Snackbar} ref=${e => snackbar = e} />
 
-  <div>ID=${data.user?.id}
+  <div>
+    ID=${data.user?.id}
   </div>
+  <div>
+    ${data.touch?.date}
+  </div>
+  <div dangerouslySetInnerHTML=${{__html:data.touch?.content}}></div>
+
   <button className="btn--flat mt-8 w-full" onClick=${doLogoff}>
       ログオフ
   </button>

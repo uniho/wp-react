@@ -63,11 +63,10 @@ const Page = props => {
     modalSpinner.show('ログイン中です...')
     try {
       try {
-        const r = await fetch(Const.uri + '/?rest_route=/unsta/v1/post-api/login/-', {
+        const r = await fetch(Const.uri + '/?rest_route=/unsta/v1/api/login/-', {
           method: 'POST', 
           mode: 'cors', credentials: 'include',
           headers: {
-            'Content-Type': 'application/json',
             'X-CSRF-Token': window.unstaToken,
           }, 
           body: JSON.stringify({

@@ -8,11 +8,10 @@ export async function main(mainProps) {
   const App = props => {
       
     const handleClick = async(e) => {
-      const r = await fetch(props.uri + '/?rest_route=/unsta/v1/post-api/test/123', {
+      const r = await fetch(props.uri + '/?rest_route=/unsta/v1/api/test/123', {
         method: 'POST', 
         mode: 'cors', credentials: 'include',
         headers: {
-          'Content-Type': 'application/json',
           'X-CSRF-Token': window.unstaToken,
         }, 
         body: JSON.stringify({ok:'good'}),
