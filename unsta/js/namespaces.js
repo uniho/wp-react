@@ -13,3 +13,5 @@ export const Const = {
   // スマホサイズなら true  
   isSmartPhone: document.documentElement.clientWidth < 640,
 }
+
+Ref.body = document.querySelector('body')

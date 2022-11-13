@@ -72,6 +72,10 @@ export const cssBase = css`
   background-color: rgba(0, 0, 0, .7);
 }
 
+.scroll-lock {
+  overflow: hidden;
+}
+
 /* button 関係 */
 
 button[class^="btn"] { /* button タグ関係 クラス名の先頭が btn であるものが対象 */

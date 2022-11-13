@@ -7,7 +7,7 @@
 // * 顧客は自分の投稿を取得できる。
 // * ゲストは何もできない。
 function get($request) {
-  $user = Unsta::currentUser();
+  $user = \Unsta::currentUser();
 
   if (!$user['uid']) {
     // ゲスト（ログインしていない）

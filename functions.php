@@ -190,9 +190,130 @@ add_shortcode('jsApp', function ($atts) {
 
 
 //
+class FloodControl {
+
+  const prefix = 'unsta-flood';
+
+  public function __construct() {
+  }
+
+  public function register($name, $window = 3600, $identifier = NULL) {
+    if (!isset($identifier)) {
+      $identifier = $_SERVER["REMOTE_ADDR"];
+    }
+    // We can't use REQUEST_TIME here, because that would not guarantee
+    // uniqueness.
+    $time = microtime(TRUE);
+    $events = apcu_fetch(self::prefix."-{$name}-{$identifier}");
+    if (!$events) $events = [];
+    $events[] = ['expire' => $time + $window, 'time' => $time];
+    apcu_store(self::prefix."-{$name}-{$identifier}", $events, $window);
+  }
+
+  public function clear($name, $identifier = NULL) {
+    if (!isset($identifier)) {
+      $identifier = $_SERVER["REMOTE_ADDR"];
+    }
+    apcu_delete(self::prefix."-{$name}-{$identifier}");
+  }
+
+  public function isAllowed($name, $threshold, $window = 3600, $identifier = NULL) {
+    if (!isset($identifier)) {
+      $identifier = $_SERVER["REMOTE_ADDR"];
+    }
+    $events = apcu_fetch(self::prefix."-{$name}-{$identifier}");
+    if (!$events) {
+      return $threshold > 0;
+    }
+    $limit = microtime(TRUE) - $window;
+    $number = count(array_filter($events, function ($entry) use ($limit) {
+      return $entry['time'] > $limit;
+    }));
+    return ($number < $threshold);
+  }
+}
+
+//
+class Transaction {
+
+  protected $connection;
+  protected $rolledBack = FALSE;
+  protected $name;
+  protected $transactionLayers = [];
+
+  public function __construct($name = NULL) {
+    $this->connection = $connection;
+    if (!$depth = count($this->transactionLayers)) {
+      $this->name = 'unsta_transaction';
+    } else if (!$name) {
+      $this->name = 'savepoint_' . $depth;
+    } else {
+      $this->name = $name;
+    }
+    if (isset($this->transactionLayers[$name])) throw new \Exception("$name is already in use.");
+    global $wpdb;
+    if (count($this->transactionLayers) > 0) {
+      $wpdb->query('SAVEPOINT ' . $name);
+    } else {
+      $wpdb->query('SET TRANSACTION ISOLATION LEVEL READ COMMITTED');
+      $wpdb->query('START TRANSACTION');
+    }
+    $this->transactionLayers[$name] = $name;
+  }
+
+  public function __destruct() {
+    if (!$this->rolledBack) {
+      if (!isset($this->transactionLayers[$name])) return;
+      $this->transactionLayers[$name] = FALSE;
+      $this->popCommittableTransactions();
+    }
+  }
+
+  public function name() {
+    return $this->name;
+  }
+
+  public function rollBack() {
+    $this->rolledBack = TRUE;
+    $this->connection->rollBack($this->name);
+
+    if (!isset($this->transactionLayers[$this->name])) return;
+    $rolled_back_other_active_savepoints = FALSE;
+    global $wpdb;
+    while ($savepoint = array_pop($this->transactionLayers)) {
+      if ($savepoint == $this->name) {
+        if (empty($this->transactionLayers)) break;
+        $wpdb->query('ROLLBACK TO SAVEPOINT ' . $savepoint);
+        $this->popCommittableTransactions();
+        if ($rolled_back_other_active_savepoints) throw new \Exception("TransactionOutOfOrder");
+        return;
+      } else {
+        $rolled_back_other_active_savepoints = TRUE;
+      }
+    }
+
+    $wpdb->query('ROLLBACK');
+    if ($rolled_back_other_active_savepoints) throw new \Exception("TransactionOutOfOrder");
+  }
+
+  protected function popCommittableTransactions() {
+    foreach (array_reverse($this->transactionLayers) as $name => $active) {
+      if ($active) break;
+      unset($this->transactionLayers[$name]);
+      global $wpdb;
+      if (empty($this->transactionLayers)) {
+        $wpdb->query('COMMIT');
+      } else {
+        $wpdb->query('RELEASE SAVEPOINT ' . $name);
+      }
+    }
+  }
+}
+
+//
 class Unsta {
-  // public static $stNum = 0;
-  // public $num = 0;
+
+  public static $floodControl = false;
 
   // ブラックリストに登録されているかどうかチェック
   // 戻り値: 
@@ -204,6 +325,16 @@ class Unsta {
   // $expired: 制限する秒数
   public static function addBlackList($addr, $expired) {
     return 'test1';
+  }
+
+  public static function isAdmin() {
+    return current_user_can('administrator');
+  }
+
+  public static function database() {
+    global $wpdb;
+    $db = $wpdb
+    return $db;
   }
 
   public static function currentUser() {
@@ -224,4 +355,10 @@ class Unsta {
     ";
     $row = $wpdb->get_row($wpdb->prepare($sql, $key));
     return $row->value; 
+  }
+
+  public static function flood() {
+    if (!self::$floodControl) !self::$floodControl = new FloodControl();
+    return self::$floodControl;
+  }
 }

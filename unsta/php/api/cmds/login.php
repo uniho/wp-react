@@ -18,7 +18,6 @@ function post($request, $body) {
     $key = $_COOKIE['unsta-cookie'];
     $apcu = isset($key) ? apcu_fetch($key) : false;
     $uid = isset($apcu['userid']) ? $apcu['userid'] : 0;
-    $count = isset($apcu['count']) ? $apcu['count'] : 0;
 
     // ユーザー検索
     global $wpdb;
@@ -43,18 +42,19 @@ function post($request, $body) {
       if ($row && $row->pass && wp_check_password($data->pass, $row->pass)) {
         // パスワードもOK なのでログイン成功
         $apcu['userid'] = $uid;
-        $apcu['count'] = 0; // チャレンジ回数をリセット
+        // $apcu['count'] = 0; // チャレンジ回数をリセット
         apcu_store($key, $apcu, COOKIE_EXPIRES);
+        sleep(3); // for brute force attack
         return 'OK';
       }
     }
 
     // ログイン失敗
-    $apcu['count']++; // チャレンジ回数を増加
-    apcu_store($key, $apcu, COOKIE_EXPIRES);
-    sleep(10);
+    // $apcu['count']++; // チャレンジ回数を増加
+    // apcu_store($key, $apcu, COOKIE_EXPIRES);
+    sleep(3); // for brute force attack
     throw new \Exception('Sorry, unrecognized username or password.');
   } catch (\Exception $e) {
-    return new WP_HTTP_Response($e->message, 400);
+    return new WP_HTTP_Response($e->getMessage(), 400);
   }
 }
