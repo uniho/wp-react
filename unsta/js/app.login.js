@@ -12,7 +12,9 @@ export default props => {
   Const.uri = props.uri
   return html`
   <div className=${cssBase} ref=${e => Ref.desktop = e}>
-    <${Page}/>
+    <${Suspense} fallback=${html`<div>Loading...</div>`}>
+      <${Page} mh=${props.mh}/>
+    <//>
   </div>
   `
 }
@@ -40,6 +42,7 @@ const resource = (async function() {
 //
 const Page = props => {
   const data = React.use(resource)
+  if (data.user.id) return null;
 
   let modalSpinner, snackbar, messageBox, resetPassDialog;
 
@@ -179,52 +182,53 @@ const Page = props => {
   <${MessageBox} ref=${e => messageBox = e} />
   <${ResetPassDialog} ref=${e => resetPassDialog = e} />
 
-  <div className=${cx(cssPage, 'shadow fade-in animation-delay0')}
-    style=${{padding:'2rem'}}
-  >
-    <div className="flex-col">
+  <div className=${cx(cssPage)} style=${{height:props.mh}}>
+    <div className=${cx(cssPage, 'shadow fade-in animation-delay0')}
+      style=${{padding:'2rem'}}
+    >
       <div className="flex-col">
-        <label htmlFor="login-id">メールアドレス</label>
-        <input name="user" id="login-id" type="text" ref=${refInputId}
-          value=${state.user} onChange=${handleChange}
-          style=${{marginTop:'.25rem'}}
-        />
-      </div>
-    </div>
-    
-    <div className="flex-col mt-4">
-      <div className="flex-col">
-        <label htmlFor="login-pw">パスワード</label>
-        <div className=${cx(cssPass, {focus:stateFocusPass})}>
-          <input name="pass" id="login-pw" type=${statePass} ref=${refInputPass}
-            value=${state.pass} onChange=${handleChange}
+        <div className="flex-col">
+          <label htmlFor="login-id">メールアドレス</label>
+          <input name="user" id="login-id" type="text" ref=${refInputId}
+            value=${state.user} onChange=${handleChange}
+            style=${{marginTop:'.25rem'}}
           />
-          <div className="eye" onClick=${e => {
-            if (statePass == 'password') {
-              setStatePass('text')
-            } else {
-              setStatePass('password')
-            }
-            refInputPass.current.focus()
-          }}>
-            ${
-              statePass == 'password' ? 
-                html`<${IconEye} size="1.2rem"/>` :
-                html`<${IconEyeOff} size="1.2rem"/>`
-            }
+        </div>
+      </div>
+      
+      <div className="flex-col mt-4">
+        <div className="flex-col">
+          <label htmlFor="login-pw">パスワード</label>
+          <div className=${cx(cssPass, {focus:stateFocusPass})}>
+            <input name="pass" id="login-pw" type=${statePass} ref=${refInputPass}
+              value=${state.pass} onChange=${handleChange}
+            />
+            <div className="eye" onClick=${e => {
+              if (statePass == 'password') {
+                setStatePass('text')
+              } else {
+                setStatePass('password')
+              }
+              refInputPass.current.focus()
+            }}>
+              ${
+                statePass == 'password' ? 
+                  html`<${IconEye} size="1.2rem"/>` :
+                  html`<${IconEyeOff} size="1.2rem"/>`
+              }
+            </div>
           </div>
         </div>
       </div>
+
+      <button className="btn--raised2 mt-8 w-full" onClick=${doLogin}>
+        ログイン
+      </button>
+
+      <button className="btn--flat mt-8 w-full" onClick=${doReset}>
+        パスワードをリセットする
+      </button>
     </div>
-
-    <button className="btn--raised2 mt-8 w-full" onClick=${doLogin}>
-      ログイン
-    </button>
-
-    <button className="btn--flat mt-8 w-full" onClick=${doReset}>
-      パスワードをリセットする
-    </button>
-
   </div>
 
   <//>`

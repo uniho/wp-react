@@ -150,7 +150,7 @@ add_shortcode('jsApp', function ($atts) {
   $atts = shortcode_atts([
     'src' => '',
     'func' => 'main',
-    'rootstyle' => '',
+    'mh' => '', 'mw' => '',
   ], $atts);
 
   $jsfile = get_stylesheet_directory() . '/unsta/js/srcs/' . $atts['src'];
@@ -163,7 +163,7 @@ add_shortcode('jsApp', function ($atts) {
 
   $uri = home_url();
   $rootid = md5(uniqid(rand(), true));
-  $props = "{ uri:'$uri', rootid:'$rootid', }";
+  $props = "{ uri:'$uri', rootid:'$rootid', mh:'{$atts['mh']}', mw:'{$atts['mw']}', }";
 
   $apcu = isset($_COOKIE['unsta-cookie']) ? apcu_fetch($_COOKIE['unsta-cookie']) : false;
   $token = isset($apcu['token']) ? $apcu['token'] : false;
@@ -175,7 +175,12 @@ add_shortcode('jsApp', function ($atts) {
   }
 
   $rootstyle = '';
-  if ($atts['rootstyle']) $rootstyle = " style=\"{$atts['rootstyle']}\"";
+  if ($atts['mh'] || $atts['mw']) {
+    $rootstyle = ' style="';
+    if ($atts['mh']) $rootstyle .= "min-height:{$atts['mh']};";
+    if ($atts['mw']) $rootstyle .= "min-width:{$atts['mw']};";
+    $rootstyle .= '"';
+  }  
 
   $src =
     "<div id=\"{$rootid}\"{$rootstyle}></div>\n".
