@@ -17,8 +17,29 @@ export default props => {
   `
 }
 
+const resource = (async function() {
+  const res = {}
+  res.userResponce = await fetch(Const.uri + '/?rest_route=/unsta/v1/api/current-user/-', {
+    mode: 'cors', credentials: 'include',
+    headers: {
+      'X-CSRF-Token': window.unstaToken,
+    }, 
+  })
+
+  if (res.userResponce.ok) {
+    const json = await res.userResponce.json()
+    res.user = json.data
+    if (res.user.id) {
+      location.href = Const.uri + '/?page_id=' + Const.pageID.myPage
+    }
+  }
+
+  return res
+})()
+
 //
 const Page = props => {
+  const data = React.use(resource)
 
   let modalSpinner, snackbar, messageBox, resetPassDialog;
 
@@ -77,10 +98,10 @@ const Page = props => {
   
         if (r.status == 200 || r.status == 403) {
           // 成功
-          location.href = 'index.php?page_id=190'
+          location.href = Const.uri + '/?page_id=' + Const.pageID.myPage
         } else {
           const message = await r.json()
-          throw new Error(message + ' hint: abcd 1234')
+          throw new Error(message)
         }
       } catch(e) {
         messageBox.show(e.message)
@@ -89,6 +110,8 @@ const Page = props => {
       modalSpinner.hide()
     }            
   }
+
+  let resetData = false
 
   //
   const doReset = async(e) => {
@@ -100,37 +123,47 @@ const Page = props => {
     modalSpinner.show('送信中です...')
     try {
       try {
-        const r = await fetch(Const.uri + '/?rest_route=/unsta/v1/api/reset-pass1/-', {
-          method: 'POST', 
-          mode: 'cors', credentials: 'include',
-          headers: {
-            'X-CSRF-Token': window.unstaToken,
-          }, 
-          body: JSON.stringify({
-            mail: state.user,
-          }),
-        })
-  
-        if (!r.ok) throw new Error(r.status + ': ' + r.statusText)
+        if (!resetData) {
+          const r = await fetch(Const.uri + '/?rest_route=/unsta/v1/api/reset-pass1/-', {
+            method: 'POST', 
+            mode: 'cors', credentials: 'include',
+            headers: {
+              'X-CSRF-Token': window.unstaToken,
+            }, 
+            body: JSON.stringify({
+              mail: state.user,
+            }),
+          })
+    
+          if (!r.ok) throw new Error(r.status + ': ' + r.statusText)
 
-        const json = await r.json()
-        if (json.data) {
-          // メール送信成功
-          json.data.mail = state.user
+          const json = await r.json()
+          if (json.data) {
+            // メール送信成功
+            resetData = json.data
+            resetData.mail = state.user
+          } else {
+            let r = json.error?.message || "ERROR!"
+            if (r == 'unknown mail') r = '未登録のメールアドレスです'
+            throw new Error(r)
+          }
+        }
+
+        if (resetData) {
           resetPassDialog.show({
             message: '確認コードと新しいパスワードを入力してください。', 
             title: '',
-            data: json.data,
+            data: resetData,
             callback: (e, r) => {
               if (r == 'CXL') return;
               if (r == 'no pass') r = '新しいパスワードを入力してください'
-              if (r == 'bad code') r = '確認コードが違います'
+              if (r == 'bad pass') r = '新しいパスワードが短すぎるか、不正な文字が含まれています'
+              if (r == 'code mismatch') r = '確認コードが違います'
+              if (r == 'over challenge') r = '回数制限を越えました'
               snackbar.show(r)
             }
           })
-          return
         }
-        throw new Error(json.error?.message || "ERROR!")
       } catch(e) {
         snackbar.show(e.message)
       }
@@ -146,7 +179,9 @@ const Page = props => {
   <${MessageBox} ref=${e => messageBox = e} />
   <${ResetPassDialog} ref=${e => resetPassDialog = e} />
 
-  <div className=${cssPage}>
+  <div className=${cx(cssPage, 'shadow fade-in animation-delay0')}
+    style=${{padding:'2rem'}}
+  >
     <div className="flex-col">
       <div className="flex-col">
         <label htmlFor="login-id">メールアドレス</label>
@@ -273,7 +308,7 @@ const ResetPassDialogInner = props => {
           'X-CSRF-Token': window.unstaToken,
         }, 
         body: JSON.stringify({
-          code: state.code, uid: props.data.uid, hash: props.data.hash, mail: props.data.mail,
+          code: state.code, pass: state.pass, uid: props.data.uid, hash: props.data.hash, mail: props.data.mail,
         }),
       })
 
@@ -284,7 +319,7 @@ const ResetPassDialogInner = props => {
           props.hide()
           return
         }
-        props.callback(e, 'bad code')
+        props.callback(e, json.error?.message)
         return
       }
       props.callback(e, r.status + ':' + r.statusText)

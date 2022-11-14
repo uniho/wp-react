@@ -1,7 +1,10 @@
 <?php
 
-// クッキーの持続期間
+// クッキーの持続期間(秒)
 define('COOKIE_EXPIRES', 60 * 60 * 24 * 7);
+
+// パスワードリセットのチャレンジタイム(秒)
+define('RESETPASS_CHALLENGE_TIME', 60 * 10);
 
 
 // 初期化処理
@@ -147,6 +150,7 @@ add_shortcode('jsApp', function ($atts) {
   $atts = shortcode_atts([
     'src' => '',
     'func' => 'main',
+    'rootstyle' => '',
   ], $atts);
 
   $jsfile = get_stylesheet_directory() . '/unsta/js/srcs/' . $atts['src'];
@@ -170,10 +174,13 @@ add_shortcode('jsApp', function ($atts) {
     apcu_store($key, ['token' => $token], COOKIE_EXPIRES);
   }
 
+  $rootstyle = '';
+  if ($atts['rootstyle']) $rootstyle = " style=\"{$atts['rootstyle']}\"";
+
   $src =
-    '<div id="'.$rootid.'"></div>'."\n".
-    '<script type="module">'."\n".
-    '(async function _() { '.
+    "<div id=\"{$rootid}\"{$rootstyle}></div>\n".
+    "<script type=\"module\">\n".
+    "(async function _() { ".
       "if (!window.unstaToken) {".
         "const r=await fetch('$uri/?rest_route=/unsta/v1/api/unsta-token/-', {".
           "mode: 'cors', credentials: 'include',".
@@ -233,15 +240,71 @@ class FloodControl {
   }
 }
 
+
+//
+class Lock {
+
+  const prefix = 'unsta-lock-';
+  protected $locks = [];
+
+  public function acquire($name, $timeout = 30) {
+    $timeout = max($timeout, 1);
+    if (isset($this->locks[$name])) {
+      $exits = apcu_exists(self::prefix.$name);
+      if (!$exits) {
+        apcu_store(self::prefix.$name, true, $timeout);
+        return true;
+      }
+      unset($this->locks[$name]);
+      return false;
+    }
+    $exits = apcu_exists(self::prefix.$name);
+    if (!$exits) {
+      apcu_store(self::prefix.$name, true, $timeout);
+      $this->locks[$name] = true;
+      return true;
+    }
+    return false;
+  }
+
+  public function lockMayBeAvailable($name) {
+    return !apcu_exists(self::prefix.$name);
+  }
+
+  public function release($name) {
+    unset($this->locks[$name]);
+    apcu_delete(self::prefix.$name);
+  }
+
+  public function releaseAll() {
+    foreach ($this->locks as $key => $val) {
+      apcu_delete(self::prefix.$key);
+    }
+    $this->locks = [];
+  }
+
+  public function wait($name, $delay = 30) {
+    $delay = (int) $delay * 1000000;
+    $sleep = 25000;
+    while ($delay > 0) {
+      usleep($sleep);
+      $delay = $delay - $sleep;
+      $sleep = min(500000, $sleep + 25000, $delay);
+      if ($this->lockMayBeAvailable($name)) return false;
+    }
+    return true;
+  }
+}
+
+
 //
 class Transaction {
 
-  protected $connection;
-  protected $rolledBack = FALSE;
+  protected $rolledBack = false;
   protected $name;
   protected $transactionLayers = [];
 
-  public function __construct($name = NULL) {
+  public function __construct($name = null) {
     $this->connection = $connection;
     if (!$depth = count($this->transactionLayers)) {
       $this->name = 'unsta_transaction';
@@ -310,10 +373,13 @@ class Transaction {
   }
 }
 
+
 //
 class Unsta {
 
   public static $floodControl = false;
+  private static $db = false;
+  private static $lock = false;
 
   // ブラックリストに登録されているかどうかチェック
   // 戻り値: 
@@ -332,9 +398,24 @@ class Unsta {
   }
 
   public static function database() {
-    global $wpdb;
-    $db = $wpdb
-    return $db;
+    if (!self::$db) {
+      global $wpdb;
+      self::$db = $wpdb;
+      self::$db->startTransaction = function() {
+        return new Transaction();
+      };
+    }
+    return self::$db;
+  }
+
+  public static function lock() {
+    if (!self::$lock) self::$lock = new Lock();
+    return self::$lock;
+  }
+
+  public static function flood() {
+    if (!self::$floodControl) !self::$floodControl = new FloodControl();
+    return self::$floodControl;
   }
 
   public static function currentUser() {
@@ -355,10 +436,5 @@ class Unsta {
     ";
     $row = $wpdb->get_row($wpdb->prepare($sql, $key));
     return $row->value; 
-  }
-
-  public static function flood() {
-    if (!self::$floodControl) !self::$floodControl = new FloodControl();
-    return self::$floodControl;
   }
 }

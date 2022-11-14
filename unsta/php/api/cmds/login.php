@@ -20,26 +20,20 @@ function post($request, $body) {
     $uid = isset($apcu['userid']) ? $apcu['userid'] : 0;
 
     // ユーザー検索
-    global $wpdb;
+    $db = \Unsta::database();
     
-    $tpf = $wpdb->prefix;
+    $tpf = $db->prefix;
     $sql = "SELECT a.ID as id FROM {$tpf}posts a
       LEFT JOIN {$tpf}postmeta b ON a.ID = b.post_id
       WHERE a.post_type = 'kokyaku' AND b.meta_key ='account' AND b.meta_value = %s 
     ";
-    $row = $wpdb->get_row($wpdb->prepare($sql, $data->name)); 
+    $row = $db->get_row($db->prepare($sql, $data->name)); 
 
     if ($row) {
       // アカウントは存在した
       $uid = (int)$row->id;
-
-      $sql = "SELECT b.meta_value as pass FROM {$tpf}posts a
-        LEFT JOIN {$tpf}postmeta b ON a.ID = b.post_id
-        WHERE a.ID = {$uid} AND b.meta_key ='pass' 
-      ";
-      $row = $wpdb->get_row($sql); 
-    
-      if ($row && $row->pass && wp_check_password($data->pass, $row->pass)) {
+      $passHash = get_metadata('post', $uid, 'pass', true);
+      if ($row && $passHash && wp_check_password($data->pass, $passHash)) {
         // パスワードもOK なのでログイン成功
         $apcu['userid'] = $uid;
         // $apcu['count'] = 0; // チャレンジ回数をリセット

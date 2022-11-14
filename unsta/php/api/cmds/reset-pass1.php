@@ -21,20 +21,20 @@ function post($request, $body) {
   $uid = false;
   $mail = false;
 
-  global $wpdb;
+  $db = \Unsta::database();
 
   $sql = "SELECT a.ID as id FROM wp_posts a
     LEFT JOIN wp_postmeta b ON a.ID = b.post_id
     WHERE a.post_type = 'kokyaku' AND b.meta_key ='account' AND b.meta_value = %s 
   ";
-  $row = $wpdb->get_row($wpdb->prepare($sql, $data->mail)); 
+  $row = $db->get_row($db->prepare($sql, $data->mail)); 
   if ($row) $uid = $row->id;
 
   $sql = "SELECT a.ID as id, b.meta_value FROM wp_posts a
     LEFT JOIN wp_postmeta b ON a.ID = b.post_id
     WHERE a.post_type = 'kokyaku' AND b.meta_key ='mail' AND b.meta_value = %s 
   ";
-  $row = $wpdb->get_row($wpdb->prepare($sql, $data->mail)); 
+  $row = $db->get_row($db->prepare($sql, $data->mail)); 
   if ($row) {
     $uid = $row->id;
     $mail = $row->meta_value;
@@ -47,39 +47,55 @@ function post($request, $body) {
       LEFT JOIN wp_postmeta b ON a.ID = b.post_id
       WHERE a.post_type = 'kokyaku' AND b.meta_key ='mail' AND a.ID = %d 
     ";
-    $row = $wpdb->get_row($wpdb->prepare($sql, $uid)); 
+    $row = $db->get_row($db->prepare($sql, $uid)); 
     if (!$row) throw new \Exception('unknown mail');
     $mail = $row->meta_value;
   }
 
-  if (!\Unsta::flood()->isAllowed('reset-pass', 1, 60*10, $uid)) {
-    // ERROR: 10分以内にすでに確認コード発行済み
-    throw new \Exception("per 10 min");
+  if (!$mail) throw new \Exception('no mail');
+
+  $passHash = get_metadata('post', $uid, 'pass', true); // 空白なら flood Control しない
+
+  $lock = \Unsta::lock();
+  $lockname = "LOCK_CONFIRM_MAIL_{$mail}";
+  if ($lock->wait($lockname, 60) || !$lock->acquire($lockname, 30)) {
+    // ERROR: ロックタイムアウト
+    throw new \Exception("lock timeout");
   }
 
-  if (!\Unsta::flood()->isAllowed('reset-pass', 5, 60*60*24, $uid)) {
-    // ERROR: 5回/1日、確認コード発行済み
-    throw new \Exception("per 1 day");
+  try {
+    if ($passHash && !\Unsta::flood()->isAllowed('reset-pass', 1, 60*10, $uid)) {
+      // ERROR: 10分以内にすでに確認コード発行済み
+      throw new \Exception("per 10 min");
+    }
+
+    if ($passHash && !\Unsta::flood()->isAllowed('reset-pass', 5, 60*60*24, $uid)) {
+      // ERROR: 5回/1日、確認コード発行済み
+      throw new \Exception("per 1 day");
+    }
+
+    if ($passHash && !\Unsta::flood()->isAllowed('reset-pass', 10, 60*60*24*30, $uid)) {
+      // ERROR: 10回/1月、確認コード発行済み
+      throw new \Exception("per 1 month");
+    }
+
+    \Unsta::flood()->register('reset-pass', 60*60*24*30, $uid);
+
+    $hash = md5(uniqid(rand(), true));
+    $code = mt_rand(100000, 999999);
+
+    // Flood Control
+    \Unsta::flood()->register("reset-pass.confirm-code", RESETPASS_CHALLENGE_TIME, "{$code}-{$hash}-{$uid}-{$data->mail}");
+
+    wp_mail(
+      $mail_to = "volvo1991@gmail.com", // $mail
+      $subject = "メール件名",
+      $mail_body = "確認コード: $code\n"
+    );
+
+    return ['data' => ['uid' => $uid, 'hash' => $hash, ]];
+
+  } finally {
+    $lock->release($lockname);
   }
-
-  if (!\Unsta::flood()->isAllowed('reset-pass', 10, 60*60*24*30, $uid)) {
-    // ERROR: 10回/1月、確認コード発行済み
-    throw new \Exception("per 1 month");
-  }
-
-  \Unsta::flood()->register('reset-pass', 60*60*24*30, $uid);
-
-  $hash = md5(uniqid(rand(), true));
-  $code = mt_rand(100000, 999999);
-
-  // Flood Control
-  \Unsta::flood()->register("reset-pass.confirm-code", 60*10, "{$code}-{$hash}-{$uid}-{$data->mail}");
-
-  wp_mail(
-    $mail_to = "volvo1991@gmail.com", // $mail
-    $subject = "メール件名",
-    $mail_body = "確認コード: $code\n"
-  );
-
-  return ['data' => ['uid' => $uid, 'hash' => $hash, ]];
 }
