@@ -24,7 +24,7 @@ Style.secondary = "var(--wp--preset--color--secondary)";
 Style.secondaryDark = "#7f7fff";
 Style.secondaryLight = "#ff5f52";
 
-Style.background = "white"; // 文字の背景色
+Style.background = "var(--wp--preset--color--base)"; // 文字の背景色
 Style.textColor = "var(--wp--preset--color--contrast)"; // 文字色
 Style.textLight = Style.greyNum(0xa); // 薄めの文字色
 Style.textDark = "black"; // 濃い目の文字色
@@ -41,13 +41,19 @@ Style.greyDark = Style.greyNum(0x7);
 Style.greyLight = Style.greyNum(0xd);
 
 // Style.linkColor = 'rgba(' + hexToRgb(Style.primaryLight) + ',.8)';
-// Style.borderColor = "rgba(0,0,0,.12)"; // divider
+Style.borderColor = "rgba(0,0,0,.12)"; // divider
 
-// // ホバー時の背景色
-// Style.hoverOnPrimary = 'rgba(' + hexToRgb(Style.primary) + ',.7)';
-// Style.hoverOnPrimaryDark = 'rgba(' + hexToRgb(Style.primaryDark) + ',.7)';
-// Style.hoverOnSecondary = 'rgba(' + hexToRgb(Style.secondary) + ',.7)';
-// Style.hoverOnsecondaryDark = 'rgba(' + hexToRgb(Style.secondaryDark) + ',.7)';
+// ボタンの色情報を取得
+const button = document.querySelector('.wp-element-button')
+Style.buttonColor = Style.textOnPrimary
+Style.buttonBackground = 'initial'
+Style.buttonBackgroundColor = Style.primary
+if (button) {
+  const style = getComputedStyle(button)
+  Style.buttonColor = style.color
+  Style.buttonBackground = style.background
+  Style.buttonBackgroundColor = style.backgroundColor
+}
 
 //
 export const cssBase = css`
@@ -83,10 +89,10 @@ button[class^="btn"] { /* button タグ関係 クラス名の先頭が btn で�
   cursor: pointer;
   /*text-transform: uppercase;*/
   /*margin-bottom: 10px;*/
-  background-image: none;
+  /* background-image: none;
   background-size: 0;
   background-repeat: no-repeat;
-  background-position: 50% 50%;
+  background-position: 50% 50%; */
   padding: 10px 20px;
   display: inline-block;
   /*font-family: Roboto;*/
@@ -98,10 +104,11 @@ button.btn--float {
   width:50px;
   height:50px;
   box-shadow: 0 2px 5px 0 rgba(0,0,0,.14),0 2px 10px 0 rgba(0,0,0,.1);
-  background-color: ${Style.secondary};
-  color: ${Style.textOnSecondary};
-  transition: background-color .3s ease-out;
-  will-change: background-color;
+  background: ${Style.buttonBackground};
+  background-color: ${Style.buttonBackgroundColor};
+  color: ${Style.buttonColor};
+  transition: opacity .3s ease-out;
+  will-change: opacity;
   font-family: Roboto;
   font-size:22px;
   padding:0
@@ -122,22 +129,23 @@ button.btn--raised {
   color: inherit;
   background-color: inherit;
   box-shadow: 0 2px 5px 0 rgba(0,0,0,.14),0 2px 10px 0 rgba(0,0,0,.1);
-  transition: background-color .3s ease-out;
-  will-change: background-color;
+  transition: color .3s ease-out, background-color .3s ease-out;
+  will-change: color, background-color;
 }
 
 button.btn--raised2 {
   border-radius: 2px;
   box-shadow: 0 2px 5px 0 rgba(0,0,0,.14),0 2px 10px 0 rgba(0,0,0,.1);
-  background-color: ${Style.secondary};
-  color: ${Style.textOnSecondary};
-  transition: background-color .3s ease-out;
-  will-change: background-color;
+  background: ${Style.buttonBackground};
+  background-color: ${Style.buttonBackgroundColor};
+  color: ${Style.buttonColor};
+  transition: opacity .3s ease-out;
+  will-change: opacity;
 }
 
 ${Const.isTouchDevice ? '' : css`
   button.btn--float:hover {
-    background-color: ${Style.hoverOnSecondary};
+    opacity: 0.7;
   }
 
   button.btn--flat:hover {
@@ -145,12 +153,13 @@ ${Const.isTouchDevice ? '' : css`
   }
 
   button.btn--raised:hover {
-    background-color: ${Style.primaryLight};
-    color: ${Style.textOnLight};
+    color: ${Style.buttonColor};
+    background-color: ${Style.buttonBackgroundColor};
+    opacity: 0.5;
   }
 
   button.btn--raised2:hover {
-    background-color: ${Style.hoverOnSecondary};
+    opacity: 0.7;
   }
 `}
  

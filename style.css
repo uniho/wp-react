@@ -11,12 +11,26 @@ License:  GNU General Public License v2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html                 
 */
 
+body {
+  --wp--style--root--padding-right: 0;
+  --wp--style--root--padding-left: 0;
+}
+
 .flex {
   display: flex;
 }
 .flex-col {
   display: flex;
   flex-direction: column;
+}
+.block {
+  display: block;	
+}
+.hidden {
+  display: none;	
+}
+.hidden-important {
+  display: none !important;	
 }
 
 .mt-1 {

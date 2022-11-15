@@ -147,11 +147,13 @@ add_shortcode('scTest', function() {
 
 // React 等で表示する SC
 add_shortcode('jsApp', function ($atts) {
-  $atts = shortcode_atts([
-    'src' => '',
-    'func' => 'main',
-    'mh' => '', 'mw' => '',
-  ], $atts);
+  // $atts = shortcode_atts([
+  //   'src' => '',
+  //   'root' => '#app',
+  //   'func' => 'main',
+  // ], $atts);
+  if (!isset($atts['func'])) $atts['func'] = 'main';
+  if (!isset($atts['root'])) $atts['root'] = '#app';
 
   $jsfile = get_stylesheet_directory() . '/unsta/js/srcs/' . $atts['src'];
   if (!$atts['src'] || !file_exists($jsfile)) {
@@ -163,7 +165,9 @@ add_shortcode('jsApp', function ($atts) {
 
   $uri = home_url();
   $rootid = md5(uniqid(rand(), true));
-  $props = "{ uri:'$uri', rootid:'$rootid', mh:'{$atts['mh']}', mw:'{$atts['mw']}', }";
+  $props = $atts;
+  $props['uri'] = $uri;
+  $props = json_encode($props);
 
   $apcu = isset($_COOKIE['unsta-cookie']) ? apcu_fetch($_COOKIE['unsta-cookie']) : false;
   $token = isset($apcu['token']) ? $apcu['token'] : false;
@@ -174,16 +178,7 @@ add_shortcode('jsApp', function ($atts) {
     apcu_store($key, ['token' => $token], COOKIE_EXPIRES);
   }
 
-  $rootstyle = '';
-  if ($atts['mh'] || $atts['mw']) {
-    $rootstyle = ' style="';
-    if ($atts['mh']) $rootstyle .= "min-height:{$atts['mh']};";
-    if ($atts['mw']) $rootstyle .= "min-width:{$atts['mw']};";
-    $rootstyle .= '"';
-  }  
-
   $src =
-    "<div id=\"{$rootid}\"{$rootstyle}></div>\n".
     "<script type=\"module\">\n".
     "(async function _() { ".
       "if (!window.unstaToken) {".

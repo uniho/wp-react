@@ -182,53 +182,49 @@ const Page = props => {
   <${MessageBox} ref=${e => messageBox = e} />
   <${ResetPassDialog} ref=${e => resetPassDialog = e} />
 
-  <div className=${cx(cssPage)} style=${{height:props.mh}}>
-    <div className=${cx(cssPage, 'shadow fade-in animation-delay0')}
-      style=${{padding:'2rem'}}
-    >
+  <div className=${cx(cssPage, 'shadow fade-in animation-delay0')}>
+    <div className="flex-col">
       <div className="flex-col">
-        <div className="flex-col">
-          <label htmlFor="login-id">メールアドレス</label>
-          <input name="user" id="login-id" type="text" ref=${refInputId}
-            value=${state.user} onChange=${handleChange}
-            style=${{marginTop:'.25rem'}}
-          />
-        </div>
+        <label htmlFor="login-id">メールアドレス</label>
+        <input name="user" id="login-id" type="text" ref=${refInputId}
+          value=${state.user} onChange=${handleChange}
+          style=${{marginTop:'.25rem'}}
+        />
       </div>
-      
-      <div className="flex-col mt-4">
-        <div className="flex-col">
-          <label htmlFor="login-pw">パスワード</label>
-          <div className=${cx(cssPass, {focus:stateFocusPass})}>
-            <input name="pass" id="login-pw" type=${statePass} ref=${refInputPass}
-              value=${state.pass} onChange=${handleChange}
-            />
-            <div className="eye" onClick=${e => {
-              if (statePass == 'password') {
-                setStatePass('text')
-              } else {
-                setStatePass('password')
-              }
-              refInputPass.current.focus()
-            }}>
-              ${
-                statePass == 'password' ? 
-                  html`<${IconEye} size="1.2rem"/>` :
-                  html`<${IconEyeOff} size="1.2rem"/>`
-              }
-            </div>
+    </div>
+    
+    <div className="flex-col mt-4">
+      <div className="flex-col">
+        <label htmlFor="login-pw">パスワード</label>
+        <div className=${cx(cssPass, {focus:stateFocusPass})}>
+          <input name="pass" id="login-pw" type=${statePass} ref=${refInputPass}
+            value=${state.pass} onChange=${handleChange}
+          />
+          <div className="eye" onClick=${e => {
+            if (statePass == 'password') {
+              setStatePass('text')
+            } else {
+              setStatePass('password')
+            }
+            refInputPass.current.focus()
+          }}>
+            ${
+              statePass == 'password' ? 
+                html`<${IconEye} size="1.2rem"/>` :
+                html`<${IconEyeOff} size="1.2rem"/>`
+            }
           </div>
         </div>
       </div>
-
-      <button className="btn--raised2 mt-8 w-full" onClick=${doLogin}>
-        ログイン
-      </button>
-
-      <button className="btn--flat mt-8 w-full" onClick=${doReset}>
-        パスワードをリセットする
-      </button>
     </div>
+
+    <button className="btn--raised2 mt-8 w-full" onClick=${doLogin}>
+      ログイン
+    </button>
+
+    <button className="btn--flat mt-8 w-full" onClick=${doReset}>
+      パスワードをリセットする
+    </button>
   </div>
 
   <//>`
@@ -236,16 +232,18 @@ const Page = props => {
 
 //
 const cssPage = css`
-  /* div {
-    background-color: var(--wp--preset--color--primary);
-  } */
+  padding: 2rem;
+
+  @media screen and (max-width : ${Style.breakpoint.sm}px) {
+    padding: .5rem;
+  }  
 `;
 
 //
 const cssPass = css`
   position: relative;
   // input と同じ感じで表示されるフィールドなど(テキスト)
-  border: thin solid ${Style.textLight};
+  border: thin solid var(--wp--preset--color--contrast);
   border-radius: 0;
   overflow: hidden;
   font-family : inherit;
@@ -256,7 +254,7 @@ const cssPass = css`
   height: 2rem;
   margin-top: .25rem;
   &.focus {
-    border-color: ${Style.primary};
+    border-color: var(--wp--preset--color--primary);
   }
   input {
     width: calc(100% - 2rem);
