@@ -81,7 +81,7 @@ function post($request, $body) {
 
     \Unsta::flood()->register('reset-pass', 60*60*24*30, $uid);
 
-    $hash = md5(uniqid(rand(), true));
+    $hash = wp_generate_uuid4();
     $code = mt_rand(100000, 999999);
 
     // Flood Control

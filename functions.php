@@ -1,7 +1,7 @@
 <?php
 
 // クッキーの持続期間(秒)
-define('COOKIE_EXPIRES', 60 * 60 * 24 * 7);
+define('COOKIE_EXPIRES', 60 * 60 * 24 * 3);
 
 // パスワードリセットのチャレンジタイム(秒)
 define('RESETPASS_CHALLENGE_TIME', 60 * 10);
@@ -175,7 +175,6 @@ add_shortcode('jsApp', function ($atts) {
   $func = $atts['func'];
 
   $uri = home_url();
-  $rootid = md5(uniqid(rand(), true));
   $props = $atts;
   $props['uri'] = $uri;
   $props = json_encode($props);
@@ -184,13 +183,13 @@ add_shortcode('jsApp', function ($atts) {
   $token = isset($apcu['token']) ? $apcu['token'] : false;
   if (!$token) {
     $u = parse_url(home_url()); 
-    $key = md5(uniqid(rand(), true));
+    $key = wp_generate_uuid4();
     setcookie('unsta-cookie', $key, [
       'expires' => time()+COOKIE_EXPIRES,
       'path' => $u['path'],
       'domain' => $u['host'],
     ]);
-    $token = md5(uniqid(rand(), true));
+    $token = wp_generate_uuid4();
     apcu_store(\Unsta::apcuKey($key), ['token' => $token], COOKIE_EXPIRES);
   }
 
@@ -471,7 +470,7 @@ class Unsta {
   }
 
   public static function apcuKey($cookie) {
-    return $cookie . $_SERVER["REMOTE_ADDR"] . $_SERVER["HTTP_USER_AGENT"];
+    return $cookie . $_SERVER["REMOTE_ADDR"];
   }
 
   public static function getConfigValue($key) {
