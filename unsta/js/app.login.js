@@ -10,6 +10,8 @@ import IconEyeOff from './icons/eye-off.js'
 // ログイン App
 export default props => {
   Const.uri = props.uri
+  resource = getResource() // Start Fetch
+
   return html`
   <div className=${cssBase} ref=${e => Ref.desktop = e}>
     <${Suspense} fallback=${html`<div>Loading...</div>`}>
@@ -19,9 +21,11 @@ export default props => {
   `
 }
 
-const resource = (async function() {
+let resource
+
+const getResource = async function() {
   const res = {}
-  res.userResponce = await fetch(Const.uri + '/?rest_route=/unsta/v1/api/current-user/-', {
+  res.userResponce = await fetch(Const.uri + '/index.php?rest_route=/unsta/v1/api/current-user/-', {
     mode: 'cors', credentials: 'include',
     headers: {
       'X-CSRF-Token': window.unstaToken,
@@ -37,12 +41,12 @@ const resource = (async function() {
   }
 
   return res
-})()
+}
 
 //
 const Page = props => {
   const data = React.use(resource)
-  if (data.user.id) return null;
+  if (data.user?.id) return null;
 
   let modalSpinner, snackbar, messageBox, resetPassDialog;
 
@@ -114,7 +118,7 @@ const Page = props => {
     }            
   }
 
-  let resetData = false
+  const resetData = React.useRef(false)
 
   //
   const doReset = async(e) => {
@@ -126,7 +130,7 @@ const Page = props => {
     modalSpinner.show('送信中です...')
     try {
       try {
-        if (!resetData) {
+        if (!resetData.current) {
           const r = await fetch(Const.uri + '/?rest_route=/unsta/v1/api/reset-pass1/-', {
             method: 'POST', 
             mode: 'cors', credentials: 'include',
@@ -143,8 +147,8 @@ const Page = props => {
           const json = await r.json()
           if (json.data) {
             // メール送信成功
-            resetData = json.data
-            resetData.mail = state.user
+            resetData.current = json.data
+            resetData.current.mail = state.user
           } else {
             let r = json.error?.message || "ERROR!"
             if (r == 'unknown mail') r = '未登録のメールアドレスです'
@@ -152,12 +156,16 @@ const Page = props => {
           }
         }
 
-        if (resetData) {
+        if (resetData.current) {
           resetPassDialog.show({
             message: '確認コードと新しいパスワードを入力してください。', 
             title: '',
-            data: resetData,
+            data: resetData.current,
             callback: (e, r) => {
+              if (r == 'OK') {
+                location.href = Const.uri + '/?page_id=' + Const.pageID.myPage
+                return
+              }  
               if (r == 'CXL') return;
               if (r == 'no pass') r = '新しいパスワードを入力してください'
               if (r == 'bad pass') r = '新しいパスワードが短すぎるか、不正な文字が含まれています'
@@ -182,68 +190,71 @@ const Page = props => {
   <${MessageBox} ref=${e => messageBox = e} />
   <${ResetPassDialog} ref=${e => resetPassDialog = e} />
 
-  <div className=${cx(cssPage, 'shadow fade-in animation-delay0')}>
-    <div className="flex-col">
+  <div className=${cx(cssPage, 'flex j-center')}>
+    <div className='login-form shadow fade-in animation-delay0'>
       <div className="flex-col">
-        <label htmlFor="login-id">メールアドレス</label>
-        <input name="user" id="login-id" type="text" ref=${refInputId}
-          value=${state.user} onChange=${handleChange}
-          style=${{marginTop:'.25rem'}}
-        />
-      </div>
-    </div>
-    
-    <div className="flex-col mt-4">
-      <div className="flex-col">
-        <label htmlFor="login-pw">パスワード</label>
-        <div className=${cx(cssPass, {focus:stateFocusPass})}>
-          <input name="pass" id="login-pw" type=${statePass} ref=${refInputPass}
-            value=${state.pass} onChange=${handleChange}
+        <div className="flex-col">
+          <label htmlFor="login-id">メールアドレス</label>
+          <input name="user" id="login-id" type="text" ref=${refInputId}
+            value=${state.user} onChange=${handleChange}
+            style=${{marginTop:'.25rem'}}
           />
-          <div className="eye" onClick=${e => {
-            if (statePass == 'password') {
-              setStatePass('text')
-            } else {
-              setStatePass('password')
-            }
-            refInputPass.current.focus()
-          }}>
-            ${
-              statePass == 'password' ? 
-                html`<${IconEye} size="1.2rem"/>` :
-                html`<${IconEyeOff} size="1.2rem"/>`
-            }
+        </div>
+      </div>
+      
+      <div className="flex-col mt-4">
+        <div className="flex-col">
+          <label htmlFor="login-pw">パスワード</label>
+          <div className=${cx(cssPass, {focus:stateFocusPass})}>
+            <input name="pass" id="login-pw" type=${statePass} ref=${refInputPass}
+              value=${state.pass} onChange=${handleChange}
+            />
+            <div className="eye" onClick=${e => {
+              if (statePass == 'password') {
+                setStatePass('text')
+              } else {
+                setStatePass('password')
+              }
+              refInputPass.current.focus()
+            }}>
+              ${
+                statePass == 'password' ? 
+                  html`<${IconEye} size="1.2rem"/>` :
+                  html`<${IconEyeOff} size="1.2rem"/>`
+              }
+            </div>
           </div>
         </div>
       </div>
+
+      <button className="btn--raised2 mt-8 w-full" onClick=${doLogin}>
+        ログイン
+      </button>
+
+      <button className="btn--flat mt-8 w-full" onClick=${doReset}>
+        パスワードをリセットする
+      </button>
     </div>
-
-    <button className="btn--raised2 mt-8 w-full" onClick=${doLogin}>
-      ログイン
-    </button>
-
-    <button className="btn--flat mt-8 w-full" onClick=${doReset}>
-      パスワードをリセットする
-    </button>
   </div>
-
   <//>`
 }
 
 //
 const cssPage = css`
-  padding: 2rem;
-
-  @media screen and (max-width : ${Style.breakpoint.sm}px) {
-    padding: .5rem;
-  }  
+  .login-form {
+    padding: 2rem;
+    flex-basis: 300px;
+    @media screen and (max-width : ${Style.breakpoint.sm}px) {
+      padding: .5rem;
+    }  
+  }
 `;
 
 //
 const cssPass = css`
   position: relative;
   // input と同じ感じで表示されるフィールドなど(テキスト)
-  border: thin solid var(--wp--preset--color--contrast);
+  border: thin solid ${Style.textLight};
   border-radius: 0;
   overflow: hidden;
   font-family : inherit;
@@ -253,9 +264,6 @@ const cssPass = css`
   white-space: nowrap; /* 改行しない */
   height: 2rem;
   margin-top: .25rem;
-  &.focus {
-    border-color: var(--wp--preset--color--primary);
-  }
   input {
     width: calc(100% - 2rem);
     border: none !important;
@@ -270,8 +278,15 @@ const cssPass = css`
     right: 0; top: 0;
     width: 2rem; height: 2rem;
     padding: 0;
+    color: ${Style.textLight};
     background: rgba(0,0,0,0);
     cursor: pointer;
+  }
+  &.focus {
+    border-color: ${Style.primary};
+    .eye {
+      color: ${Style.primary};
+    }
   }
 `;
 

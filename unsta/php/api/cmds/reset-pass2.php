@@ -52,7 +52,11 @@ function post($request, $body) {
       throw new \Exception("update failed");
     }
 
-    // OK ログイン
+    // OK なのでログインする
+    \Unsta::apcuSetValue($apcu, COOKIE_EXPIRES);
+
+    \Unsta::flood()->clear('login');
+    \Unsta::flood()->clear('login', $uid);
     \Unsta::flood()->clear('reset-pass', $uid);
 
     return ['data' => []];

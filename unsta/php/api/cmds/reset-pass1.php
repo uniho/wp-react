@@ -88,9 +88,9 @@ function post($request, $body) {
     \Unsta::flood()->register("reset-pass.confirm-code", RESETPASS_CHALLENGE_TIME, "{$code}-{$hash}-{$uid}-{$data->mail}");
 
     wp_mail(
-      $mail_to = "volvo1991@gmail.com", // $mail
-      $subject = "メール件名",
-      $mail_body = "確認コード: $code\n"
+      $mail_to = $mail,
+      $subject = "確認コード",
+      $mail_body = "\n確認コード：$code\n\n"
     );
 
     return ['data' => ['uid' => $uid, 'hash' => $hash, ]];

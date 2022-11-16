@@ -24,13 +24,12 @@ add_action('rest_api_init', function() {
   register_rest_route('unsta/v1', '/api/(?P<cmd>[\\w\\d\\-]+)\\/(?P<arg>.*)', [
     'methods' => 'GET',
     'callback' => function($request) {
-      $apcu = isset($_COOKIE['unsta-cookie']) ? apcu_fetch($_COOKIE['unsta-cookie']) : false;
+      $apcu = \Unsta::apcuGetValue();
 
       $cmd = $request['cmd'];
       if ($cmd == 'unsta-token') {
         $token = isset($apcu['token']) ? $apcu['token'] : false;
         if (!$token) {
-          sleep(10);
           return new WP_HTTP_Response('no token', 400);
         }
         return ['unstaToken' => $token];
@@ -38,7 +37,6 @@ add_action('rest_api_init', function() {
 
       $token = isset($_SERVER['HTTP_X_CSRF_TOKEN']) ? $_SERVER['HTTP_X_CSRF_TOKEN'] : false;
       if (!isset($apcu['token']) || !$token || $token !== $apcu['token']) {
-        sleep(10);
         return new WP_HTTP_Response('bad token', 400);
       }
 
@@ -63,13 +61,12 @@ add_action('rest_api_init', function() {
   register_rest_route('unsta/v1', '/api/(?P<cmd>[\\w\\d\\-]+)\\/(?P<arg>.*)', [
     'methods' => 'POST',
     'callback' => function($request) {
-      $apcu = isset($_COOKIE['unsta-cookie']) ? apcu_fetch($_COOKIE['unsta-cookie']) : false;
+      $apcu = \Unsta::apcuGetValue();
 
       $cmd = $request['cmd'];
 
       $token = isset($_SERVER['HTTP_X_CSRF_TOKEN']) ? $_SERVER['HTTP_X_CSRF_TOKEN'] : false;
       if (!isset($apcu['token']) || !$token || $token !== $apcu['token']) {
-        sleep(10);
         return new WP_HTTP_Response('bad token', 400);
       }
 
@@ -117,6 +114,33 @@ add_action('manage_posts_custom_column', function($column_name, $post_id) {
   }
 }, 10, 2);
 
+add_filter('manage_pages_columns', function($columns) {
+  // カラムのタイトル
+  $columns['postid'] = 'ID';
+  unset($columns['date']); // 順序を変更するため
+  $columns['date'] = 'Date';
+  return $columns;
+});
+add_action('manage_pages_custom_column', function($column_name, $post_id) {
+  // カラムの内容
+  switch ($column_name) {
+    case 'date':
+      echo get_the_date($post_id = $post_id); 
+      break;
+    case 'postid':
+      echo $post_id;
+      break;
+    case 'thumbnail': 
+      // $thumb = get_the_post_thumbnail($post_id, array(100,100), 'thumbnail');
+      // echo ( $thumb ) ? $thumb : '－';
+      break;
+    case 'count': 
+      // $count = mb_strlen(strip_tags(get_post_field('post_content', $post_id)));
+      // echo $count;
+      break;
+  }
+}, 10, 2);
+
 
 // SQL を実行する SC
 add_shortcode('sql', function($atts) {
@@ -129,19 +153,6 @@ add_shortcode('sql', function($atts) {
 
   $r = $wpdb->get_results($sql);
   return json_encode($r);
-});
-
-
-// 
-add_shortcode('scTest', function() {
-  // $token = (session_status() == 2 && isset($_SESSION['react-token'])) ? $_SESSION['react-token'] : false;
-  // if (!$token) {
-  //   session_start();
-  //   $token = md5(uniqid(rand(), TRUE));
-  //   $_SESSION['react-token'] = $token;
-  // }
-  $obj = get_queried_object();  //現在表示しているページのオブジェクトを取得
-  return json_encode($obj);
 });
 
 
@@ -169,18 +180,23 @@ add_shortcode('jsApp', function ($atts) {
   $props['uri'] = $uri;
   $props = json_encode($props);
 
-  $apcu = isset($_COOKIE['unsta-cookie']) ? apcu_fetch($_COOKIE['unsta-cookie']) : false;
+  $apcu = \Unsta::apcuGetValue();
   $token = isset($apcu['token']) ? $apcu['token'] : false;
   if (!$token) {
+    $u = parse_url(home_url()); 
     $key = md5(uniqid(rand(), true));
-    setcookie('unsta-cookie', $key, time()+COOKIE_EXPIRES);
+    setcookie('unsta-cookie', $key, [
+      'expires' => time()+COOKIE_EXPIRES,
+      'path' => $u['path'],
+      'domain' => $u['host'],
+    ]);
     $token = md5(uniqid(rand(), true));
-    apcu_store($key, ['token' => $token], COOKIE_EXPIRES);
+    apcu_store(\Unsta::apcuKey($key), ['token' => $token], COOKIE_EXPIRES);
   }
 
   $src =
     "<script type=\"module\">\n".
-    "(async function _() { ".
+    "(async function() { ".
       "if (!window.unstaToken) {".
         "const r=await fetch('$uri/?rest_route=/unsta/v1/api/unsta-token/-', {".
           "mode: 'cors', credentials: 'include',".
@@ -193,6 +209,26 @@ add_shortcode('jsApp', function ($atts) {
     "})();\n</script>";
 
   return $src;
+});
+
+
+// カレントユーザーの情報を取得する SC 
+add_shortcode('curuser', function() {
+  $atts = shortcode_atts([
+    'src' => '',
+    'root' => '#app',
+    'func' => 'main',
+  ], $atts);
+  $user = \Unsta::currentUser();
+  $uid = $user['uid'];
+  return json_encode($obj);
+});
+
+
+// 
+add_shortcode('scTest', function() {
+  $obj = get_queried_object();  //現在表示しているページのオブジェクトを取得
+  return json_encode($obj);
 });
 
 
@@ -419,12 +455,23 @@ class Unsta {
   }
 
   public static function currentUser() {
-    $key = $_COOKIE['unsta-cookie'];
-    $apcu = isset($key) ? apcu_fetch($key) : false;
+    $apcu = self::apcuGetValue();
     return [
       'uid' => isset($apcu['userid']) ? (int)$apcu['userid'] : 0,
-      'count' => isset($apcu['count']) ? (int)$apcu['count'] : 0,
     ];
+  }
+
+  public static function apcuGetValue() {
+    return isset($_COOKIE['unsta-cookie']) ? apcu_fetch(self::apcuKey($_COOKIE['unsta-cookie'])) : false;
+  }
+
+  public static function apcuSetValue($value, $expires) {
+    if (!isset($_COOKIE['unsta-cookie'])) return;
+    apcu_store(self::apcuKey($_COOKIE['unsta-cookie']), $value, $expires);
+  }
+
+  public static function apcuKey($cookie) {
+    return $cookie . $_SERVER["REMOTE_ADDR"] . $_SERVER["HTTP_USER_AGENT"];
   }
 
   public static function getConfigValue($key) {

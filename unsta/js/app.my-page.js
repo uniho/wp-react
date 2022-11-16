@@ -7,6 +7,7 @@ import {Snackbar} from './parts.snackbar.js'
 // User Home App
 export default props => {
   Const.uri = props.uri
+  resource = getResource()
   return html`
   <div className=${cssBase} ref=${e => Ref.desktop = e}>
     <${Suspense} fallback=${html`<div>...</div>`}>
@@ -16,7 +17,9 @@ export default props => {
   `
 }
 
-const resource = (async function() {
+let resource
+
+const getResource = async function() {
   const res = {}
   res.userResponce = await fetch(Const.uri + '/?rest_route=/unsta/v1/api/current-user/-', {
     mode: 'cors', credentials: 'include',
@@ -47,7 +50,7 @@ const resource = (async function() {
   }
 
   return res
-})()
+}
 
 let modalSpinner, snackbar;
 
@@ -62,7 +65,7 @@ const doLogoff = async(e) => {
       }, 
     })
   } finally {
-    location.href = 'index.php?page_id=194' // Go Top
+    location.href = Const.uri + '/?page_id=194' // Go Top
   }            
 }
 
