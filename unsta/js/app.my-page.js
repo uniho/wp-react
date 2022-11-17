@@ -23,9 +23,6 @@ const getResource = async function() {
   const res = {}
   res.userResponce = await fetch(Const.uri + '/?rest_route=/unsta/v1/api/current-user/-', {
     mode: 'cors', credentials: 'include',
-    headers: {
-      'X-CSRF-Token': window.unstaToken,
-    }, 
   })
 
   if (res.userResponce.ok) {
@@ -36,9 +33,6 @@ const getResource = async function() {
       // touch 履歴を取得
       res.touchResponce = await fetch(Const.uri + '/?rest_route=/unsta/v1/api/query-wp-post/-', {
         mode: 'cors', credentials: 'include',
-        headers: {
-          'X-CSRF-Token': window.unstaToken,
-        }, 
       })
     
       if (res.touchResponce.ok) {
@@ -60,12 +54,9 @@ const doLogoff = async(e) => {
   try {
     const r = await fetch(Const.uri + '/?rest_route=/unsta/v1/api/logoff/-', {
       mode: 'cors', credentials: 'include',
-      headers: {
-        'X-CSRF-Token': window.unstaToken,
-      }, 
     })
   } finally {
-    location.href = Const.uri + '/?page_id=194' // Go Top
+    location.href = Const.uri // Go Top
   }            
 }
 

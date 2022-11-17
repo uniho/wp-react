@@ -14,6 +14,8 @@ function post($request, $body) {
   $user = \Unsta::currentUser();
   $uid = $user['uid'];
 
+  $ipAddr = $_SERVER["REMOTE_ADDR"];
+
   if ($uid) throw new \Exception('no bad');
 
   if (!$data->mail || strlen($data->mail) > 1024) throw new \Exception('bad params');
@@ -64,22 +66,22 @@ function post($request, $body) {
   }
 
   try {
-    if ($passHash && !\Unsta::flood()->isAllowed('reset-pass', 1, 60*10, $uid)) {
+    if ($passHash && !\Unsta::flood()->isAllowed('reset-pass', 1, 60*10, "$uid-$ipAddr")) {
       // ERROR: 10分以内にすでに確認コード発行済み
       throw new \Exception("per 10 min");
     }
 
-    if ($passHash && !\Unsta::flood()->isAllowed('reset-pass', 5, 60*60*24, $uid)) {
+    if ($passHash && !\Unsta::flood()->isAllowed('reset-pass', 5, 60*60*24, "$uid-$ipAddr")) {
       // ERROR: 5回/1日、確認コード発行済み
       throw new \Exception("per 1 day");
     }
 
-    if ($passHash && !\Unsta::flood()->isAllowed('reset-pass', 10, 60*60*24*30, $uid)) {
+    if ($passHash && !\Unsta::flood()->isAllowed('reset-pass', 10, 60*60*24*30, "$uid-$ipAddr")) {
       // ERROR: 10回/1月、確認コード発行済み
       throw new \Exception("per 1 month");
     }
 
-    \Unsta::flood()->register('reset-pass', 60*60*24*30, $uid);
+    \Unsta::flood()->register('reset-pass', 60*60*24*30, "$uid-$ipAddr");
 
     $hash = wp_generate_uuid4();
     $code = mt_rand(100000, 999999);

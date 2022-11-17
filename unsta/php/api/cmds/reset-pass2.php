@@ -45,6 +45,7 @@ function post($request, $body) {
       // or "code 未発行"
       // or "uuid 違う"
       // or "code 違う"
+      sleep(3); // for brute force attack
       throw new \Exception("code mismatch");
     }
 
@@ -53,12 +54,15 @@ function post($request, $body) {
     }
 
     // OK なのでログインする
+    $apcu = \Unsta::apcuGetValue();
+    $apcu['userid'] = $uid;
     \Unsta::apcuSetValue($apcu, COOKIE_EXPIRES);
 
-    \Unsta::flood()->clear('login');
-    \Unsta::flood()->clear('login', $uid);
-    \Unsta::flood()->clear('reset-pass', $uid);
+    $ipAddr = $_SERVER["REMOTE_ADDR"];
+    \Unsta::flood()->clear('login', "$uid-$ipAddr");
+    \Unsta::flood()->clear('reset-pass', "$uid-$ipAddr");
 
+    sleep(3); // for brute force attack
     return ['data' => []];
 
   } finally {

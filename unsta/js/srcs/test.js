@@ -8,16 +8,27 @@ export async function main(mainProps) {
   const App = props => {
       
     const handleClick = async(e) => {
+      let token
+      try {
+        const r = await fetch(Const.uri + '/?rest_route=/unsta/v1/api/unsta-token/-', {
+          mode: 'cors', credentials: 'include',
+        })
+        if (!r.ok) throw new Error(r.status + ':' + await r.json())
+        token = await r.json()
+      } catch(e) {
+        throw new Error(`セッショントークンが取得できませんでした。(${e.message})`)
+      }
+
       const r = await fetch(props.uri + '/?rest_route=/unsta/v1/api/test/123', {
         method: 'POST', 
         mode: 'cors', credentials: 'include',
         headers: {
-          'X-CSRF-Token': window.unstaToken,
+          'X-CSRF-Token': token,
         }, 
         body: JSON.stringify({ok:'good'}),
       })
         
-      console.log(await r.text())
+      console.log(await r.json())
     }  
 
     // 改行を <br/> タグに変換する

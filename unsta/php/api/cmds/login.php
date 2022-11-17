@@ -19,6 +19,8 @@ function post($request, $body) {
     $uid = isset($apcu['userid']) ? $apcu['userid'] : 0;
     if ($uid) throw new \Exception('no bad');
 
+    $ipAddr = $_SERVER["REMOTE_ADDR"];
+
     // ユーザー検索
     $db = \Unsta::database();
     
@@ -37,46 +39,29 @@ function post($request, $body) {
         // パスワードもOK なのでログイン成功
         $apcu['userid'] = $uid;
         \Unsta::apcuSetValue($apcu, COOKIE_EXPIRES);
+        \Unsta::flood()->clear('login', "$uid-$ipAddr");
         sleep(3); // for brute force attack
         return 'OK';
       }
 
-      // ログイン失敗 ~ user id 単位での Flood Control
-      if (!\Unsta::flood()->isAllowed('login', 10, 60*60, $uid)) {
+      // ログイン失敗
+      if (!\Unsta::flood()->isAllowed('login', 10, 60*60, "$uid-$ipAddr")) {
         // ERROR: 10回/1時間、ログイン失敗した
         throw new \Exception("per 1 hour");
       }
   
-      if (!\Unsta::flood()->isAllowed('login', 20, 60*60*24, $uid)) {
+      if (!\Unsta::flood()->isAllowed('login', 20, 60*60*24, "$uid-$ipAddr")) {
         // ERROR: 20回/1日、ログイン失敗した
         throw new \Exception("per 1 day");
       }
   
-      if (!\Unsta::flood()->isAllowed('login', 30, 60*60*24*7, $uid)) {
+      if (!\Unsta::flood()->isAllowed('login', 30, 60*60*24*7, "$uid-$ipAddr")) {
         // ERROR: 30回/1週、ログイン失敗した
         throw new \Exception("per 1 week");
       }
   
-      \Unsta::flood()->register('login', 60*60*24*7, $uid);
+      \Unsta::flood()->register('login', 60*60*24*7, "$uid-$ipAddr");
     }
-
-    // ログイン失敗 ~ IP 単位での Flood Control
-    if (!\Unsta::flood()->isAllowed('login', 10, 60*60)) {
-      // ERROR: 10回/1時間、ログイン失敗した
-      throw new \Exception("per 1 hour");
-    }
-
-    if (!\Unsta::flood()->isAllowed('login', 20, 60*60*24)) {
-      // ERROR: 20回/1日、ログイン失敗した
-      throw new \Exception("per 1 day");
-    }
-
-    if (!\Unsta::flood()->isAllowed('login', 30, 60*60*24*7)) {
-      // ERROR: 30回/1週、ログイン失敗した
-      throw new \Exception("per 1 week");
-    }
-
-    \Unsta::flood()->register('login', 60*60*24*7);
 
     sleep(3); // for brute force attack
     throw new \Exception('Sorry, unrecognized username or password.');

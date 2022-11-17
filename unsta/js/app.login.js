@@ -4,6 +4,7 @@ import {cssBase} from './style.js'
 import {ModalSpinner} from './parts.spinner.js'
 import {Snackbar} from './parts.snackbar.js'
 import {DialogBox, MessageBox} from './parts.dialog-box.js'
+import post2rest from './submod.post2rest.js'
 import IconEye from './icons/eye.js'
 import IconEyeOff from './icons/eye-off.js'
 
@@ -27,9 +28,6 @@ const getResource = async function() {
   const res = {}
   res.userResponce = await fetch(Const.uri + '/index.php?rest_route=/unsta/v1/api/current-user/-', {
     mode: 'cors', credentials: 'include',
-    headers: {
-      'X-CSRF-Token': window.unstaToken,
-    }, 
   })
 
   if (res.userResponce.ok) {
@@ -47,8 +45,6 @@ const getResource = async function() {
 const Page = props => {
   const data = React.use(resource)
   if (data.user?.id) return null;
-
-  let modalSpinner, snackbar, messageBox, resetPassDialog;
 
   const [state, setState] = React.useState({user: '', pass: ''})
   const [statePass, setStatePass] = React.useState('password')
@@ -96,7 +92,7 @@ const Page = props => {
           method: 'POST', 
           mode: 'cors', credentials: 'include',
           headers: {
-            'X-CSRF-Token': window.unstaToken,
+            'Content-Type': 'application/json',
           }, 
           body: JSON.stringify({
             name: state.user, pass: state.pass,
@@ -107,8 +103,7 @@ const Page = props => {
           // 成功
           location.href = Const.uri + '/?page_id=' + Const.pageID.myPage
         } else {
-          const message = await r.json()
-          throw new Error(message)
+          throw new Error(r.status + ':' + await r.json())
         }
       } catch(e) {
         messageBox.show(e.message)
@@ -131,20 +126,15 @@ const Page = props => {
     try {
       try {
         if (!resetData.current) {
-          const r = await fetch(Const.uri + '/?rest_route=/unsta/v1/api/reset-pass1/-', {
-            method: 'POST', 
-            mode: 'cors', credentials: 'include',
-            headers: {
-              'X-CSRF-Token': window.unstaToken,
-            }, 
-            body: JSON.stringify({
+          const r = await post2rest(
+            '/?rest_route=/unsta/v1/api/reset-pass1/-', {
               mail: state.user,
-            }),
-          })
+            },
+          )
     
-          if (!r.ok) throw new Error(r.status + ': ' + r.statusText)
-
           const json = await r.json()
+          if (!r.ok) throw new Error(r.status + ':' + json)
+
           if (json.data) {
             // メール送信成功
             resetData.current = json.data
@@ -239,6 +229,8 @@ const Page = props => {
   <//>`
 }
 
+let modalSpinner, snackbar, messageBox, resetPassDialog;
+
 //
 const cssPage = css`
   .login-form {
@@ -317,31 +309,32 @@ const ResetPassDialogInner = props => {
       props.callback(e, 'no pass')
       return
     }
-    try {
-      const r = await fetch(Const.uri + '/?rest_route=/unsta/v1/api/reset-pass2/-', {
-        method: 'POST', 
-        mode: 'cors', credentials: 'include',
-        headers: {
-          'X-CSRF-Token': window.unstaToken,
-        }, 
-        body: JSON.stringify({
-          code: state.code, pass: state.pass, uid: props.data.uid, hash: props.data.hash, mail: props.data.mail,
-        }),
-      })
 
-      if (r.ok) {
-        const json = await r.json()
-        if (json.data) {
-          props.callback(e, 'OK')
-          props.hide()
+    modalSpinner.show('確認中です...')
+    try {
+      try {
+        const r = await post2rest(
+          '/?rest_route=/unsta/v1/api/reset-pass2/-', {
+            code: state.code, pass: state.pass, uid: props.data.uid, hash: props.data.hash, mail: props.data.mail,
+          },
+        )
+
+        if (r.ok) {
+          const json = await r.json()
+          if (json.data) {
+            props.callback(e, 'OK')
+            props.hide()
+            return
+          }
+          props.callback(e, json.error?.message)
           return
         }
-        props.callback(e, json.error?.message)
-        return
+        props.callback(e, r.status + ':' + r.statusText)
+      } catch(e) {
+        props.callback(e, e.message)
       }
-      props.callback(e, r.status + ':' + r.statusText)
-    } catch(e) {
-      props.callback(e, e.message)
+    } finally {
+      modalSpinner.hide()
     }
   }
   

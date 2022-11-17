@@ -25,19 +25,35 @@ add_action('rest_api_init', function() {
     'methods' => 'GET',
     'callback' => function($request) {
       $apcu = \Unsta::apcuGetValue();
+      if (!$apcu) {
+        if (!\Unsta::flood()->isAllowed('new cookie', 1, 10)) {
+          return new WP_HTTP_Response('crowded', 400);
+        }
+        \Unsta::flood()->register('new cookie', 10);
+
+        $u = parse_url(home_url()); 
+        $key = wp_generate_uuid4();
+        setcookie('unsta-cookie', $key, [
+          'expires' => time()+COOKIE_EXPIRES,
+          'path' => $u['path'],
+          'domain' => $u['host'],
+        ]);
+        
+        $apcu = [];
+        $apcu['userid'] = 0;
+        apcu_store(\Unsta::apcuKey($key), $apcu, COOKIE_EXPIRES);
+      }
 
       $cmd = $request['cmd'];
       if ($cmd == 'unsta-token') {
-        $token = isset($apcu['token']) ? $apcu['token'] : false;
-        if (!$token) {
-          return new WP_HTTP_Response('no token', 400);
+        if (isset($apcu['token'])) {
+          $token = $apcu['token'];
+        } else {
+          $token = wp_generate_uuid4();
+          $apcu['token'] = $token;
+          \Unsta::apcuSetValue($apcu, COOKIE_EXPIRES);
         }
-        return ['unstaToken' => $token];
-      }
-
-      $token = isset($_SERVER['HTTP_X_CSRF_TOKEN']) ? $_SERVER['HTTP_X_CSRF_TOKEN'] : false;
-      if (!isset($apcu['token']) || !$token || $token !== $apcu['token']) {
-        return new WP_HTTP_Response('bad token', 400);
+        return $token;
       }
 
       $cmd = get_stylesheet_directory()."/unsta/php/api/cmds/{$cmd}.php";
@@ -62,14 +78,19 @@ add_action('rest_api_init', function() {
     'methods' => 'POST',
     'callback' => function($request) {
       $apcu = \Unsta::apcuGetValue();
+      if (!$apcu) {
+        return new WP_HTTP_Response('bad request', 400);
+      }
 
       $cmd = $request['cmd'];
 
-      $token = isset($_SERVER['HTTP_X_CSRF_TOKEN']) ? $_SERVER['HTTP_X_CSRF_TOKEN'] : false;
-      if (!isset($apcu['token']) || !$token || $token !== $apcu['token']) {
-        return new WP_HTTP_Response('bad token', 400);
+      if ($cmd != 'login') {
+        $token = isset($_SERVER['HTTP_X_CSRF_TOKEN']) ? $_SERVER['HTTP_X_CSRF_TOKEN'] : false;
+        if (!isset($apcu['token']) || !$token || $token !== $apcu['token']) {
+          return new WP_HTTP_Response('bad token', 403);
+        }
       }
-
+      
       $cmd = get_stylesheet_directory()."/unsta/php/api/cmds/{$cmd}.php";
       if (!file_exists($cmd)) {
         return new WP_HTTP_Response('bad cmd', 400);
@@ -179,30 +200,9 @@ add_shortcode('jsApp', function ($atts) {
   $props['uri'] = $uri;
   $props = json_encode($props);
 
-  $apcu = \Unsta::apcuGetValue();
-  $token = isset($apcu['token']) ? $apcu['token'] : false;
-  if (!$token) {
-    $u = parse_url(home_url()); 
-    $key = wp_generate_uuid4();
-    setcookie('unsta-cookie', $key, [
-      'expires' => time()+COOKIE_EXPIRES,
-      'path' => $u['path'],
-      'domain' => $u['host'],
-    ]);
-    $token = wp_generate_uuid4();
-    apcu_store(\Unsta::apcuKey($key), ['token' => $token], COOKIE_EXPIRES);
-  }
-
   $src =
     "<script type=\"module\">\n".
     "(async function() { ".
-      "if (!window.unstaToken) {".
-        "const r=await fetch('$uri/?rest_route=/unsta/v1/api/unsta-token/-', {".
-          "mode: 'cors', credentials: 'include',".
-        "}); ".
-        "const json=await r.json(); ".
-        "window.unstaToken=json.unstaToken; ".
-      "} ".
       "const src = await import('$jsfile'); ".
       "await src.$func($props); ".
     "})();\n</script>";
