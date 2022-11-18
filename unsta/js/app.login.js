@@ -3,7 +3,7 @@ import {Const, Style, Ref} from './namespaces.js'
 import {cssBase} from './style.js'
 import {ModalSpinner} from './parts.spinner.js'
 import {Snackbar} from './parts.snackbar.js'
-import {DialogBox, MessageBox} from './parts.dialog-box.js'
+import {DialogBox, StdDialogBox, MessageBox} from './parts.dialog-box.js'
 import post2rest from './submod.post2rest.js'
 import IconEye from './icons/eye.js'
 import IconEyeOff from './icons/eye-off.js'
@@ -16,7 +16,7 @@ export default props => {
   return html`
   <div className=${cssBase} ref=${e => Ref.desktop = e}>
     <${Suspense} fallback=${html`<div>Loading...</div>`}>
-      <${Page} mh=${props.mh}/>
+      <${Page}/>
     <//>
   </div>
   `
@@ -103,7 +103,7 @@ const Page = props => {
           // 成功
           location.href = Const.uri + '/?page_id=' + Const.pageID.myPage
         } else {
-          throw new Error(r.status + ':' + await r.json())
+          throw new Error(await r.json() + ` (${r.status})`)
         }
       } catch(e) {
         messageBox.show(e.message)
@@ -116,61 +116,69 @@ const Page = props => {
   const resetData = React.useRef(false)
 
   //
-  const doReset = async(e) => {
+  const doReset = e => {
+
     if (!state.user) {
       refInputId.current.focus()
       return
     }
 
-    modalSpinner.show('送信中です...')
-    try {
+    const doSend = async() => {
+      modalSpinner.show('送信中です...')
       try {
-        if (!resetData.current) {
-          const r = await post2rest(
-            '/?rest_route=/unsta/v1/api/reset-pass1/-', {
-              mail: state.user,
-            },
-          )
-    
-          const json = await r.json()
-          if (!r.ok) throw new Error(r.status + ':' + json)
-
-          if (json.data) {
-            // メール送信成功
-            resetData.current = json.data
-            resetData.current.mail = state.user
-          } else {
-            let r = json.error?.message || "ERROR!"
-            if (r == 'unknown mail') r = '未登録のメールアドレスです'
-            throw new Error(r)
-          }
-        }
-
-        if (resetData.current) {
-          resetPassDialog.show({
-            message: '確認コードと新しいパスワードを入力してください。', 
-            title: '',
-            data: resetData.current,
-            callback: (e, r) => {
-              if (r == 'OK') {
-                location.href = Const.uri + '/?page_id=' + Const.pageID.myPage
-                return
-              }  
-              if (r == 'CXL') return;
-              if (r == 'no pass') r = '新しいパスワードを入力してください'
-              if (r == 'bad pass') r = '新しいパスワードが短すぎるか、不正な文字が含まれています'
-              if (r == 'code mismatch') r = '確認コードが違います'
-              if (r == 'over challenge') r = '回数制限を越えました'
-              snackbar.show(r)
+        try {
+          if (!resetData.current) {
+            const r = await post2rest(
+              '/?rest_route=/unsta/v1/api/reset-pass1/-', {
+                mail: state.user,
+              },
+            )
+      
+            const json = await r.json()
+            if (!r.ok) throw new Error(r.status + ':' + json)
+  
+            if (json.data) {
+              // メール送信成功
+              resetData.current = json.data
+              resetData.current.mail = state.user
+            } else {
+              let r = json.error?.message || "ERROR!"
+              if (r == 'unknown mail') r = '未登録のメールアドレスです'
+              throw new Error(r)
             }
-          })
+          }
+  
+          if (resetData.current) {
+            resetPassDialog.show({
+              message: '確認コードと新しいパスワードを入力してください。', 
+              title: '',
+              data: resetData.current,
+              callback: (e, r) => {
+                if (r == 'OK') {
+                  location.href = Const.uri + '/?page_id=' + Const.pageID.myPage
+                  return
+                }  
+                if (r == 'CXL') return;
+                if (r == 'no pass') r = '新しいパスワードを入力してください'
+                if (r == 'bad pass') r = '新しいパスワードが短すぎるか、不正な文字が含まれています'
+                if (r == 'code mismatch') r = '確認コードが違います'
+                if (r == 'over challenge') r = '回数制限を越えました'
+                snackbar.show(r)
+              }
+            })
+          }
+        } catch(e) {
+          snackbar.show(e.message)
         }
-      } catch(e) {
-        snackbar.show(e.message)
-      }
-    } finally {
-      modalSpinner.hide()
-    }            
+      } finally {
+        modalSpinner.hide()
+      }            
+    } 
+
+    confirmBox.show(state.user + ' 宛てに確認コードを送信します。よろしいですか？', '確認', 1, 
+      ['送信する', 'キャンセル'], (e, index) => {
+        if (index == 0) doSend()
+      })
   }
 
   return html`<${Fragment}>
@@ -178,6 +186,7 @@ const Page = props => {
   <${ModalSpinner} ref=${e => modalSpinner = e} />
   <${Snackbar} ref=${e => snackbar = e} />
   <${MessageBox} ref=${e => messageBox = e} />
+  <${StdDialogBox} ref=${e => confirmBox = e} />
   <${ResetPassDialog} ref=${e => resetPassDialog = e} />
 
   <div className=${cx(cssPage, 'flex j-center')}>
@@ -229,13 +238,13 @@ const Page = props => {
   <//>`
 }
 
-let modalSpinner, snackbar, messageBox, resetPassDialog;
+let modalSpinner, snackbar, confirmBox, messageBox, resetPassDialog;
 
 //
 const cssPage = css`
   .login-form {
     padding: 2rem;
-    flex-basis: 300px;
+    flex-basis: 100%;
     @media screen and (max-width : ${Style.breakpoint.sm}px) {
       padding: .5rem;
     }  
@@ -319,17 +328,15 @@ const ResetPassDialogInner = props => {
           },
         )
 
+        const json = await r.json()
         if (r.ok) {
-          const json = await r.json()
           if (json.data) {
             props.callback(e, 'OK')
             props.hide()
             return
           }
-          props.callback(e, json.error?.message)
-          return
         }
-        props.callback(e, r.status + ':' + r.statusText)
+        props.callback(e,  json.error?.message + ` (${r.status})`)
       } catch(e) {
         props.callback(e, e.message)
       }

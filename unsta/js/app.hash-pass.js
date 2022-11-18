@@ -3,6 +3,7 @@ import {Const, Style, Ref} from './namespaces.js'
 import {cssBase} from './style.js'
 import {ModalSpinner} from './parts.spinner.js'
 import {Snackbar} from './parts.snackbar.js'
+import post2rest from './submod.post2rest.js'
 
 // パスワードをハッシュ化して返す App
 export default props => {
@@ -48,16 +49,11 @@ const Page = props => {
     modalSpinner.show('計算中です...')
     try {
       try {
-        const r = await fetch(Const.uri + '/?rest_route=/unsta/v1/api/hash-pass/-', {
-          method: 'POST', 
-          mode: 'cors', credentials: 'include',
-          headers: {
-            'X-CSRF-Token': window.unstaToken,
-          }, 
-          body: JSON.stringify({
+        const r = await post2rest(
+          '/?rest_route=/unsta/v1/api/hash-pass/-', {
             pass: state.pass,
-          }),
-        })
+          },
+        )
   
         const json = await r.json()
         if (json.data) {
@@ -67,8 +63,7 @@ const Page = props => {
           state.hash = json.data
           setState(Object.assign({}, state));
         } else {
-          const message = await r.json()
-          throw new Error('Error')
+          throw new Error(json.error?.message)
         }
       } catch(e) {
         snackbar.show(e.message)

@@ -89,11 +89,11 @@ function post($request, $body) {
     // Flood Control
     \Unsta::flood()->register("reset-pass.confirm-code", RESETPASS_CHALLENGE_TIME, "{$code}-{$hash}-{$uid}-{$data->mail}");
 
-    wp_mail(
+    if (!wp_mail(
       $mail_to = $mail,
       $subject = "確認コード",
       $mail_body = "\n確認コード：$code\n\n"
-    );
+    )) throw new \Exception("failed to send");
 
     return ['data' => ['uid' => $uid, 'hash' => $hash, ]];
 
