@@ -305,17 +305,17 @@ const cssPage = css`
 //
 const MenuInner = props => {
   const wx = 200, wy = menuH, mx = 16, my = 16
-  let x = props.cursor.clientX + mx
+  let x = props.cursor.clientX + mx - wx / 2
   if (x + wx + mx > document.body.clientWidth) {
     x = document.body.clientWidth - wx - mx
   }
-  if (x < 0) x = 0
+  if (x < mx) x = mx
   
   let y = props.cursor.clientY + my
   if (y + wy > document.documentElement.clientHeight) {
     y = document.documentElement.clientHeight - wy
   }
-  if (y < 0) y = 0
+  if (y < my) y = my
 
   const [stateHide, setStateHide] = React.useState(false)
   React.useEffect(() => {
