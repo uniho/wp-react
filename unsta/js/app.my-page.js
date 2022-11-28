@@ -1,8 +1,8 @@
-
 import {Const, Style, Ref} from './namespaces.js'
 import {cssBase} from './style.js'
 import {ModalSpinner} from './parts.spinner.js'
 import {Snackbar} from './parts.snackbar.js'
+import IconMenu from './icons/menu.js'
 
 // User Home App
 export default props => {
@@ -30,15 +30,15 @@ const getResource = async function() {
     res.user = json.data
 
     if (res.user?.id) {
-      // touch 履歴を取得
-      res.touchResponce = await fetch(Const.uri + '/?rest_route=/unsta/v1/api/query-wp-post/-', {
+      // web analytics を取得
+      res.waResponce = await fetch(Const.uri + '/?rest_route=/unsta/v1/api/query-wp-post/-', {
         mode: 'cors', credentials: 'include',
       })
     
-      if (res.touchResponce.ok) {
-        const json = await res.touchResponce.json()
-        res.touch = json.data
-        console.log(res.touch)
+      if (res.waResponce.ok) {
+        const json = await res.waResponce.json()
+        res.wa = json.data
+        console.log(res.wa)
       }
     }  
   }
@@ -63,13 +63,44 @@ const doLogoff = async(e) => {
 //
 const Page = props => {
   const data = React.use(resource)
-  
+
+  const [stateMenu, setStateMenu] = React.useState(false)
+  const refCursor = React.useRef(false) 
+
+  const showMenu = e => {
+    refCursor.current = e
+    setStateMenu(true)
+  }
+
+  const hideMenu = () => {
+    setTimeout(() => setStateMenu(false), menuClose_msec)
+  }
+
   return html`<${Fragment}>
 
   <${ModalSpinner} ref=${e => modalSpinner = e} />
   <${Snackbar} ref=${e => snackbar = e} />
 
+  ${function _() {
+    if (!stateMenu) return null;
+    return html`
+    <${MenuInner} cursor=${refCursor.current} hide=${hideMenu}>
+      <div>設定</div>
+      <div onClick=${doLogoff}>
+        ログオフ
+      </div>
+    <//>
+    `
+  }()}
+
   <div className="${cssPage}">
+
+    <div className=${cx("flex", {show: stateMenu})} style=${{justifyContent:'end'}}>
+      <div className="menu-icon" onClick=${showMenu}>
+        <${IconMenu} size="2rem" />
+      </div>
+    </div>
+
     <div>
       ID=${data.user?.id}
     </div>
@@ -78,25 +109,22 @@ const Page = props => {
     </div>
     <div dangerouslySetInnerHTML=${{__html:data.touch?.content}}></div>
 
-    <button className="btn--flat mt-8 w-full" onClick=${doLogoff}>
-        ログオフ
-    </button>
+    <div className="mt-8 flex" style=${{justifyContent:'end'}}>
+      <div>作成日: ${data.wa.date}</div>
+    </div>
 
-    <div className="mt-8 table flex-row has-primary-background-color has-background">
-      <div className="table-title">xxxxxx ホームページ アクセス分析レポート</div>
+    <div className="table flex-row has-primary-background-color has-background">
+      <div className="table-title">アクセス分析レポート</div>
       <div className="table-title-bottom"></div>
 
       <div className="flex top-row">
-        <div className="title">サイト名</div>
-        <div className="field">医療の何か</div>
+        <${CommentRow} title="サイト名" data=${data.wa.site_name} />
       </div>
       <div className="flex">
-        <div className="title">サイトURL</div>
-        <div className="field">https://iryono.net/</div>
+        <${CommentRow} title="サイトURL" data=${data.wa.site_url} />
       </div>
       <div className="flex">
-        <div className="title">分析期間</div>
-        <div className="field">2022-01-01 ~ 2022-05-31</div>
+        <${CommentRow} title="分析期間" data=${data.wa.kikan} />
       </div>
 
       <div className="table-bottom"></div>
@@ -104,56 +132,50 @@ const Page = props => {
 
     <div className="mt-8 table flex-row has-primary-background-color has-background">
       <div className="flex top-row">
-        <${CommentRow} title="ユーザー" data="期間合計：35,679人、月平均：2,973人（前年比約16%増）" comment="増加傾向にある（前年同期間：30,654 人、月平均：2,555 人）"/>
+        <${CommentRow} title="ユーザー" data=${data.wa.user1} comment=${data.wa.user2}/>
       </div>
       <div className="flex">
-        <${CommentRow} title="ページビュー" data="期間合計：136,290ページ、月平均：11,358ページ（前年比約29%増）" comment="増加傾向にある（前年同期間：105,280 ページ、月平均：8,773 ページ）"/>
+        <${CommentRow} title="ページビュー" data=${data.wa.page_view1} comment=${data.wa.page_view2}/>
       </div>
       <div className="flex">
-        <${CommentRow} title="直帰率" data="約65%" comment="前年同期約66%"/>
+        <${CommentRow} title="直帰率" data=${data.wa.chokki_ritsu1} comment=${data.wa.chokki_ritsu2}/>
       </div>
       <div className="flex">
-        <${CommentRow} title="閲覧ページ" data="トップ：39%、メニュー&クーポン：14%、スタッフ（※）：6%、施術の流れ（パーマ編）：6%、施術の流れ（カラー編）：4%、髪質改善とは？：4%、初めての方へ：3%、施術の流れ（トリートメント編）：3%、よくある質問：3%、サイバートリートメント（※）：2%、ブログ：1% 他\n※アクセスエラーが発生しています。" comment=""/>
+        <${CommentRow} title="閲覧ページ" data=${data.wa.etsuran_page} comment=""/>
       </div>
       <div className="flex">
-        <${CommentRow} title="<span>地域</span><span>（都道府県）</span>" data="東京：19%、大阪：15%、神奈川：10%、愛知：6%、福岡：5%、埼玉：4%、北海道：4%、兵庫：4%、千葉：3%、他" comment="【前年同期間】大阪：15%、東京：14%、神奈川：13%、愛知：6%、福岡：4%、埼玉：4%、北海道：4%、兵庫：3%、千葉：3%、他"/>
+        <${CommentRow} title="<span>地域</span><span>（都道府県）</span>" data=${data.wa.area_pref1} comment=${data.wa.area_pref2}/>
       </div>
       <div className="flex">
-        <div className="title"><span>地域</span><span>（特定地域）</span></div>
-        <div className="field">T</div>
+        <${CommentRow} title="<span>地域</span><span>（特定地域）</span>" data=${data.wa.area_city1} comment=${data.wa.area_city2}/>
       </div>
       <div className="flex">
-        <div className="title">デバイス</div>
-        <div className="field"></div>
+        <${CommentRow} title="デバイス" data=${data.wa.device1} comment=${data.wa.device2}/>
       </div>
       <div className="flex">
-        <div className="title">流入経路</div>
-        <div className="field"></div>
+        <${CommentRow} title="流入経路" data=${data.wa.device1} comment=${data.wa.device2}/>
       </div>
       <div className="flex">
-        <div className="title"><span>流入</span><span>キーワード</span></div>
-        <div className="field"></div>
+        <${CommentRow} title="<span>流入</span><span>キーワード</span>" data=${data.wa.keyword} />
       </div>
       <div className="flex">
-        <div className="title">年齢</div>
-        <div className="field"></div>
+        <${CommentRow} title="年齢" data=${data.wa.nenrei1} comment=${data.wa.nenrei2}/>
       </div>
       <div className="flex">
-        <div className="title">性別</div>
-        <div className="field"></div>
+        <${CommentRow} title="性別" data=${data.wa.sex1} comment=${data.wa.sex2}/>
       </div>
       <div className="flex">
-        <div className="title">総合分析</div>
-        <div className="field">One For All, All For One.</div>
+        <${CommentRow} title="総合分析" data=${data.wa.bunseki} />
       </div>
       <div className="flex">
-        <div className="title">備考</div>
-        <div className="field">・各種四捨五入した数値が含まれています。データの性質上、数値に若干の誤差が発生する場合があります。</div>
+        <${CommentRow} title="備考" data=${data.wa.biko} />
       </div>
 
       <div className="table-bottom"></div>
+
     </div>
-  </div>  
+  
+  </div>
   <//>`
 }
 
@@ -165,12 +187,22 @@ const CommentRow = props => {
     setStateShowComment(state => !state)
   }
 
+  const data = React.useMemo(() => {
+    if (!props.data) return '';
+    return props.data.replace(/\n/g, '<br/>')
+  }, [])
+
+  const comment = React.useMemo(() => {
+    if (!props.comment) return '';
+    return props.comment.replace(/\n/g, '<br/>')
+  }, [])
+
   return html`<${Fragment}>
   <div className="title" dangerouslySetInnerHTML=${{__html: props.title}}></div>
   <div className="field flex-row" onClick=${handleClick}>
-    <div className="data">${props.data}</div>
-    <div className=${cx({show: props.comment.length > 0, showComment: stateShowComment}, "comment-button")}>🫥</div>
-    <div className=${cx({show: stateShowComment}, 'comment')}>${props.comment}</div>
+    <div className="data" dangerouslySetInnerHTML=${{__html: data}}></div>
+    <div className=${cx({show: props.comment?.length > 0, showComment: stateShowComment}, "comment-button")}>🫥</div>
+    <div className=${cx({show: stateShowComment}, 'comment')} dangerouslySetInnerHTML=${{__html: comment}}></div>
   </div>
   <//>`
 }
@@ -178,27 +210,10 @@ const CommentRow = props => {
 //
 const cssPage = css`
 
-  .flex {
+  .menu-icon {
     display: flex;
-  }
-  .frex-row {
-    flex-direction: row;
-  }
-
-  .mt-1 {
-    margin-top: .25rem;
-  }
-  .mt-2 {
-    margin-top: .5rem;
-  }
-  .mt-3 {
-    margin-top: .75rem;
-  }
-  .mt-4 {
-    margin-top: 1rem;
-  }
-  .mt-8 {
-    margin-top: 2rem;
+    align-items: center;
+    cursor: pointer;
   }
 
   .table-title {
@@ -221,6 +236,7 @@ const cssPage = css`
     justify-content: center;
     align-items: center;
     flex-wrap: wrap;
+    color: ${Style.textColor};
     & > span {
       display: inline-block;
       white-space: nowrap;
@@ -284,4 +300,98 @@ const cssPage = css`
   .table-bottom {
     height: 3px;
   }
+`;
+
+//
+const MenuInner = props => {
+  const wx = 200, wy = menuH, mx = 16, my = 16
+  let x = props.cursor.clientX + mx
+  if (x + wx + mx > document.body.clientWidth) {
+    x = document.body.clientWidth - wx - mx
+  }
+  if (x < 0) x = 0
+  
+  let y = props.cursor.clientY + my
+  if (y + wy > document.documentElement.clientHeight) {
+    y = document.documentElement.clientHeight - wy
+  }
+  if (y < 0) y = 0
+
+  const [stateHide, setStateHide] = React.useState(false)
+  React.useEffect(() => {
+    if (stateHide) props.hide()
+  })
+
+  return ReactDOM.createPortal(html`
+    <div className=${cx(cssMenu, "modal-desktop")} onClick=${e => setStateHide(true)}>
+      <div className=${cx({hide: stateHide})}
+        style=${{top: y, left: x, width:wx+'px', height:wy+'px'}}
+      >
+        ${props.children}
+      </div>
+    </div>
+  `, Ref.desktop)
+}
+
+//
+const menuH = 200
+const menuClose_msec = 250
+
+const kfMenuFadein = keyframes`
+  0% {
+    height: 0; opacity: 0%;
+  }
+  50% {
+    opacity: 100%;
+  }
+  100% {
+    height: ${menuH}px;
+  }
 `
+
+const kfMenuFadeout = keyframes`
+  0% {
+    height: ${menuH}px;
+  }
+  100% {
+    height: 0;
+  }
+`
+
+const cssMenu = css`
+  display: flex;
+  flex-direction: column;
+  /* justify-content: end; */
+
+  & > div {
+    position: absolute;
+    background-color: ${Style.background};
+    display: flex;
+    flex-direction: column;
+    border: solid 1px var(--wp--preset--color--contrast);
+    /* border-radius: 2px; */
+    animation: ${kfMenuFadein} 0.5s ease-in-out forwards;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+
+    &.hide {
+      animation: ${kfMenuFadeout} ${menuClose_msec}ms ease-in-out forwards;
+      & > div {
+        opacity: 0;
+        transition: opacity ${menuClose_msec}ms;
+      }
+    }
+
+    & > div {
+      padding: .5rem 1rem;
+      overflow: hidden;
+      white-space: nowrap;
+      cursor: pointer;
+      /* transform: translate(50%);
+      border: solid 1px var(--wp--preset--color--contrast);
+      border-radius: 2px;
+      padding: 1rem;
+      animation: ${kfMenuFadein} 0.5s ease-in-out forwards; */
+    }
+  }
+
+`;

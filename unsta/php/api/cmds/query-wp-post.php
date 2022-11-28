@@ -18,7 +18,7 @@ function get($request) {
     
   $tpf = $db->prefix;
 
-  $sql = "SELECT a.ID as id, a.post_title, a.post_content FROM {$tpf}posts a
+  $sql = "SELECT a.ID as id, a.post_title, a.post_content, a.post_date FROM {$tpf}posts a
     LEFT JOIN {$tpf}postmeta b ON a.ID = b.post_id
     WHERE a.post_type = 'post' AND b.meta_key = 'kid' AND b.meta_value = %s 
   ";
@@ -29,6 +29,7 @@ function get($request) {
     $data['touch_id'] = (int)$row->id;
     $data['title'] = $row->post_title;
     $data['content'] = $row->post_content;
+    $data['date'] = substr($row->post_date, 0, 10);
 
     // CF を取得する
     $sql = "SELECT meta_key, meta_value FROM {$tpf}postmeta

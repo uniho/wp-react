@@ -3,7 +3,7 @@
 // クッキーの持続期間(秒)
 define('COOKIE_EXPIRES', 60 * 60 * 24 * 3);
 
-// パスワードリセットのチャレンジタイム(秒)
+// パスワードリセットなどのチャレンジタイム(秒)
 define('RESETPASS_CHALLENGE_TIME', 60 * 10);
 
 
@@ -285,16 +285,16 @@ class Lock {
   public function acquire($name, $timeout = 30) {
     $timeout = max($timeout, 1);
     if (isset($this->locks[$name])) {
-      $exits = apcu_exists(self::prefix.$name);
-      if (!$exits) {
+      $exists = apcu_exists(self::prefix.$name);
+      if (!$exists) {
         apcu_store(self::prefix.$name, true, $timeout);
         return true;
       }
       unset($this->locks[$name]);
       return false;
     }
-    $exits = apcu_exists(self::prefix.$name);
-    if (!$exits) {
+    $exists = apcu_exists(self::prefix.$name);
+    if (!$exists) {
       apcu_store(self::prefix.$name, true, $timeout);
       $this->locks[$name] = true;
       return true;

@@ -14,17 +14,28 @@ function get($request) {
 // POST
 function post($request, $body) {
   $user = \Unsta::currentUser();
-  if (!$user['uid']) throw new \Exception('no role');
+  $uid = $user['uid'];
+  if (!$uid) throw new \Exception('no role');
 
   $data = json_decode($body); // json形式を PHP オブジェクトに変換
 
-  global $wpdb;
-
-  if ($data->pass) {
-    $result = $wpdb->update($wpdb->postmeta, 
-      ['meta_value' => $passworder->hash($data->pass)],
-      ['post_id' => $user['uid'], 'meta_key' => 'pass']);
+  $pass = $data->pass;
+  if ($pass) {
+    if (!preg_match('/^[a-zA-Z0-9!"#$%&\'()\\-^@\\[;:\\],.\\/\\|`{+*}<>?_]{8,1024}$/', $pass)) {
+      throw new \Exception('bad pass');
+    }
+    if (!update_metadata('post', $uid, 'pass', wp_hash_password($pass))) {
+      throw new \Exception("update failed");
+    }
   }
-  
+
+  $mail = $data->mail;
+  if ($mail) {
+    if (strlen(!$mail) > 1024) throw new \Exception('bad mail');
+    if (!update_metadata('post', $uid, 'mail', $mail)) {
+      throw new \Exception("update failed");
+    }
+  }
+
   return ['data' => []];
 }
