@@ -58,30 +58,6 @@ if (button) {
 //
 export const cssBase = css`
 
-/* DialogBox など用 */
-.modal-desktop {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0);
-}
-
-.modal-system {
-  position: fixed;
-  z-index: 99;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100vh;
-  background-color: rgba(0, 0, 0, .7);
-}
-
-.scroll-lock {
-  overflow: hidden;
-}
-
 /* button 関係 */
 
 button[class^="btn"] { /* button タグ関係 クラス名の先頭が btn であるものが対象 */

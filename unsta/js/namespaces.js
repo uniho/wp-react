@@ -17,5 +17,3 @@ export const Const = {
     myPage: 190,
   },
 }
-
-Ref.body = document.querySelector('body')

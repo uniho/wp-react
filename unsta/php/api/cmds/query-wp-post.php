@@ -8,11 +8,16 @@
 // * ゲストは何もできない。
 function get($request) {
   $user = \Unsta::currentUser();
+  $uid = (int)$user['uid'];
 
-  if (!$user['uid']) {
-    // ゲスト（ログインしていない）
-    throw new \Exception('no role');
-  }  
+  // nonce がないと管理者と判断されないので注意
+  if (!current_user_can('manage_options')) {
+    if (!$uid) throw new \Exception('no role'); // ゲスト（ログインしていない）
+  } else {
+    // 管理者
+    $tmp = (int)$request['arg'];
+    if ($tmp > 0) $uid = $tmp;
+  }
 
   $db = \Unsta::database();
     
@@ -22,9 +27,9 @@ function get($request) {
     LEFT JOIN {$tpf}postmeta b ON a.ID = b.post_id
     WHERE a.post_type = 'post' AND b.meta_key = 'kid' AND b.meta_value = %s 
   ";
-  $row = $db->get_row($db->prepare($sql, $user['uid'])); 
+  $row = $db->get_row($db->prepare($sql, $uid)); 
 
-  $data = [];
+  $data = false;
   if ($row) {
     $data['touch_id'] = (int)$row->id;
     $data['title'] = $row->post_title;

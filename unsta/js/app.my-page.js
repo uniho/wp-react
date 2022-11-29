@@ -3,10 +3,14 @@ import {cssBase} from './style.js'
 import {ModalSpinner} from './parts.spinner.js'
 import {Snackbar} from './parts.snackbar.js'
 import IconMenu from './icons/menu.js'
+import IconRight from './icons/chevron-right.js'
 
 // User Home App
 export default props => {
   Const.uri = props.uri
+  Const.wp_nonce = props.wp_nonce
+  Const.wp_object_id = props.wp_object_id
+  Const.wp_user_is_admin = props.wp_user_is_admin
   resource = getResource()
   return html`
   <div className=${cssBase} ref=${e => Ref.desktop = e}>
@@ -21,28 +25,46 @@ let resource
 
 const getResource = async function() {
   const res = {}
-  res.userResponce = await fetch(Const.uri + '/?rest_route=/unsta/v1/api/current-user/-', {
-    mode: 'cors', credentials: 'include',
-  })
 
-  if (res.userResponce.ok) {
-    const json = await res.userResponce.json()
-    res.user = json.data
+  if (Const.wp_object_id == Const.pageID.myPage) {
+    res.userResponce = await fetch(Const.uri + '/?rest_route=/unsta/v1/api/current-user/-', {
+      mode: 'cors', credentials: 'include',
+    })
 
-    if (res.user?.id) {
-      // web analytics を取得
-      res.waResponce = await fetch(Const.uri + '/?rest_route=/unsta/v1/api/query-wp-post/-', {
+    if (res.userResponce.ok) {
+      const json = await res.userResponce.json()
+      res.user = json.data
+    }
+  } else if (Const.wp_user_is_admin) { 
+    // ダッシュボードから kokyaku CPT を表示する場合
+    res.userResponce = await fetch(
+      Const.uri + `/?rest_route=/unsta/v1/api/get-wpobj/${Const.wp_object_id}`,
+      {
         mode: 'cors', credentials: 'include',
-      })
-    
-      if (res.waResponce.ok) {
-        const json = await res.waResponce.json()
-        res.wa = json.data
-        console.log(res.wa)
+        headers: {'X-WP-Nonce': Const.wp_nonce}, // nonce が必要
       }
-    }  
+    )
+
+    if (res.userResponce.ok) {
+      const json = await res.userResponce.json()
+      res.user = {id: Const.wp_object_id, name: json.data?.Title}
+    }
   }
 
+  if (res.user?.id) {
+    // web analytics を取得
+    res.waResponce = await fetch(Const.uri + `/?rest_route=/unsta/v1/api/query-wp-post/${res.user.id}`, {
+      mode: 'cors', credentials: 'include',
+      headers: {'X-WP-Nonce': Const.wp_nonce}, // kokyaku CPT の場合には nonce が必要
+    })
+  
+    if (res.waResponce.ok) {
+      const json = await res.waResponce.json()
+      res.wa = json.data
+      // console.log(res.wa)
+    }
+  }  
+  
   return res
 }
 
@@ -72,26 +94,20 @@ const Page = props => {
     setStateMenu(true)
   }
 
-  const hideMenu = () => {
-    setTimeout(() => setStateMenu(false), menuClose_msec)
-  }
+  let user_name = ''
+  if (data.user?.id) user_name = `${data.user.name} 様 (${data.user.id})` 
 
   return html`<${Fragment}>
 
   <${ModalSpinner} ref=${e => modalSpinner = e} />
   <${Snackbar} ref=${e => snackbar = e} />
 
-  ${function _() {
-    if (!stateMenu) return null;
-    return html`
-    <${MenuInner} cursor=${refCursor.current} hide=${hideMenu}>
-      <div>設定</div>
-      <div onClick=${doLogoff}>
-        ログオフ
-      </div>
-    <//>
-    `
-  }()}
+  <${PopupMenu} show=${stateMenu} hide=${() => setStateMenu(false)} cursor=${refCursor.current}>
+    <div>設定</div>
+    <div onClick=${doLogoff}>
+      ログオフ
+    </div>
+  <//>
 
   <div className="${cssPage}">
 
@@ -102,18 +118,15 @@ const Page = props => {
     </div>
 
     <div>
-      ID=${data.user?.id}
+      ${user_name}
     </div>
-    <div>
-      ${data.touch?.date}
-    </div>
-    <div dangerouslySetInnerHTML=${{__html:data.touch?.content}}></div>
 
+    ${ data.wa ? html`
     <div className="mt-8 flex" style=${{justifyContent:'end'}}>
       <div>作成日: ${data.wa.date}</div>
     </div>
 
-    <div className="table flex-row has-primary-background-color has-background">
+    <div className="table flex-col has-primary-background-color has-background">
       <div className="table-title">アクセス分析レポート</div>
       <div className="table-title-bottom"></div>
 
@@ -130,7 +143,7 @@ const Page = props => {
       <div className="table-bottom"></div>
     </div>
 
-    <div className="mt-8 table flex-row has-primary-background-color has-background">
+    <div className="mt-8 table flex-col has-primary-background-color has-background">
       <div className="flex top-row">
         <${CommentRow} title="ユーザー" data=${data.wa.user1} comment=${data.wa.user2}/>
       </div>
@@ -174,7 +187,17 @@ const Page = props => {
       <div className="table-bottom"></div>
 
     </div>
-  
+
+    ` : html`
+    <div className="mt-8 table flex-col has-primary-background-color has-background">
+      <div className="table-title">アクセス分析レポート</div>
+      <div className="table-title-bottom"></div>
+      <div className="flex top-row">
+        <${CommentRow} title="なし" data="なし" />
+      </div>
+      <div className="table-bottom"></div>
+    </div>
+    `}
   </div>
   <//>`
 }
@@ -199,9 +222,13 @@ const CommentRow = props => {
 
   return html`<${Fragment}>
   <div className="title" dangerouslySetInnerHTML=${{__html: props.title}}></div>
-  <div className="field flex-row" onClick=${handleClick}>
-    <div className="data" dangerouslySetInnerHTML=${{__html: data}}></div>
-    <div className=${cx({show: props.comment?.length > 0, showComment: stateShowComment}, "comment-button")}>🫥</div>
+  <div className="field flex-col" onClick=${handleClick}>
+    <div className="flex"> 
+      <div className=${cx({show: props.comment?.length > 0, showComment: stateShowComment}, "comment-button")}>
+        <${IconRight} size="1.5rem"/>
+      </div>
+      <div className="data" dangerouslySetInnerHTML=${{__html: data}}></div>
+    </div>
     <div className=${cx({show: stateShowComment}, 'comment')} dangerouslySetInnerHTML=${{__html: comment}}></div>
   </div>
   <//>`
@@ -267,19 +294,22 @@ const cssPage = css`
 
     .comment-button {
       display: none;
-      margin: auto 1rem;
-      padding: .5rem 0;
+      margin: auto .25rem;
+      /* padding: .5rem 0; */
       font-size: 2rem;
-      &>img {
+      &>svg {
         cursor: pointer;
         transition: transform .5s;
-        transform: rotate(90deg);
+        transform: rotate(0deg);
       }	
       &.show {
         display: flex;
-        &.showComment>img {
-          transform: rotate(0deg);
+        &.showComment>svg {
+          transform: rotate(90deg);
         }	 
+        & + .data {
+          padding-left: 0;
+        }
       }
     }
 
@@ -303,28 +333,55 @@ const cssPage = css`
 `;
 
 //
-const MenuInner = props => {
+const PopupMenu = props => {
   const wx = 200, wy = menuH, mx = 16, my = 16
-  let x = props.cursor.clientX + mx - wx / 2
+  let x = props.cursor.pageX + mx - wx / 2
   if (x + wx + mx > document.body.clientWidth) {
     x = document.body.clientWidth - wx - mx
   }
   if (x < mx) x = mx
   
-  let y = props.cursor.clientY + my
+  let y = props.cursor.pageY + my
   if (y + wy > document.documentElement.clientHeight) {
     y = document.documentElement.clientHeight - wy
   }
   if (y < my) y = my
 
-  const [stateHide, setStateHide] = React.useState(false)
-  React.useEffect(() => {
-    if (stateHide) props.hide()
-  })
+  const scrollWidth = Math.max(
+    document.body.scrollWidth, document.documentElement.scrollWidth,
+    document.body.offsetWidth, document.documentElement.offsetWidth,
+    document.body.clientWidth, document.documentElement.clientWidth
+  )
+  
+  const scrollHeight = Math.max(
+    document.body.scrollHeight, document.documentElement.scrollHeight,
+    document.body.offsetHeight, document.documentElement.offsetHeight,
+    document.body.clientHeight, document.documentElement.clientHeight
+  )
+  
+  // for Hiding Animation
+  const [stateHiding, setStateHiding] = React.useState(false)
+  const hideMenu = () => {
+    setStateHiding(true)
+    setTimeout(() => {
+      props.hide()
+      setStateHiding(false)
+    }, menuClose_msec)
+  }
+
+  if (!props.show) return null;
 
   return ReactDOM.createPortal(html`
-    <div className=${cx(cssMenu, "modal-desktop")} onClick=${e => setStateHide(true)}>
-      <div className=${cx({hide: stateHide})}
+    <div className=${cssMenu} 
+      style=${{
+        position: 'absolute',
+        top: 0, left: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0)',
+        width: scrollWidth + 'px', height: scrollHeight + 'px',
+      }}  
+      onClick=${e => hideMenu()}
+    >
+      <div className=${cx({hide: stateHiding})}
         style=${{top: y, left: x, width:wx+'px', height:wy+'px'}}
       >
         ${props.children}
@@ -334,7 +391,7 @@ const MenuInner = props => {
 }
 
 //
-const menuH = 200
+const menuH = 100
 const menuClose_msec = 250
 
 const kfMenuFadein = keyframes`
@@ -352,9 +409,11 @@ const kfMenuFadein = keyframes`
 const kfMenuFadeout = keyframes`
   0% {
     height: ${menuH}px;
+    opacity: 100%;
   }
   100% {
     height: 0;
+    opacity: 10%;
   }
 `
 
@@ -386,11 +445,6 @@ const cssMenu = css`
       overflow: hidden;
       white-space: nowrap;
       cursor: pointer;
-      /* transform: translate(50%);
-      border: solid 1px var(--wp--preset--color--contrast);
-      border-radius: 2px;
-      padding: 1rem;
-      animation: ${kfMenuFadein} 0.5s ease-in-out forwards; */
     }
   }
 

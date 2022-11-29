@@ -34,7 +34,7 @@ const getResource = async function() {
     const json = await res.userResponce.json()
     res.user = json.data
     if (res.user.id) {
-      location.href = Const.uri + '/?page_id=' + Const.pageID.myPage
+      location.replace(Const.uri + '/?page_id=' + Const.pageID.myPage)
     }
   }
 
@@ -101,7 +101,7 @@ const Page = props => {
   
         if (r.status == 200 || r.status == 403) {
           // 成功
-          location.href = Const.uri + '/?page_id=' + Const.pageID.myPage
+          location.replace(Const.uri + '/?page_id=' + Const.pageID.myPage)
         } else {
           throw new Error(await r.json() + ` (${r.status})`)
         }

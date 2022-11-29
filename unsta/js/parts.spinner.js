@@ -176,8 +176,28 @@ export const SpinnerCenter = props => html`
 
 // デスクトップのほぼ中央にスピナー
 export const SpinnerOnDesktop = () => {
+
+  const scrollWidth = Math.max(
+    document.body.scrollWidth, document.documentElement.scrollWidth,
+    document.body.offsetWidth, document.documentElement.offsetWidth,
+    document.body.clientWidth, document.documentElement.clientWidth
+  )
+  
+  const scrollHeight = Math.max(
+    document.body.scrollHeight, document.documentElement.scrollHeight,
+    document.body.offsetHeight, document.documentElement.offsetHeight,
+    document.body.clientHeight, document.documentElement.clientHeight
+  )
+  
   return ReactDOM.createPortal(html`
-  <div class="modal-desktop">
+  <div
+    style=${{
+      position: 'absolute',
+      top: 0, left: 0,
+      backgroundColor: 'rgba(0, 0, 0, 0)',
+      width: scrollWidth + 'px', height: scrollHeight + 'px',
+    }}  
+  >
     <div style=${{
       position: 'absolute',
       top: '40vh', left: '50%',
@@ -230,8 +250,27 @@ export const ModalSpinner = class extends React.Component {
 
     const msg = this.state.message
 
+    const scrollWidth = Math.max(
+      document.body.scrollWidth, document.documentElement.scrollWidth,
+      document.body.offsetWidth, document.documentElement.offsetWidth,
+      document.body.clientWidth, document.documentElement.clientWidth
+    )
+    
+    const scrollHeight = Math.max(
+      document.body.scrollHeight, document.documentElement.scrollHeight,
+      document.body.offsetHeight, document.documentElement.offsetHeight,
+      document.body.clientHeight, document.documentElement.clientHeight
+    )
+    
     return ReactDOM.createPortal(html`
-    <div className="modal-desktop">
+    <div
+      style=${{
+        position: 'absolute',
+        top: 0, left: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0)',
+        width: scrollWidth + 'px', height: scrollHeight + 'px',
+      }}  
+    >
       <div style=${style}>
         <div style=${{display:'flex', marginTop:'1rem', justifyContent:'center'}}>
           ${msg ? msg : ''}

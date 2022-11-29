@@ -5,10 +5,18 @@
 // GET
 function get($request) {
   $user = \Unsta::currentUser();
+  $uid = $user['uid'];
 
-  return ['data' => [
-    'id' => $user['uid'],
-  ]];
+  $data = [
+    'id' => $uid,
+  ];
+
+  if ($uid) {
+    $kokyaku = get_postdata($uid);
+    $data['name'] = $kokyaku['Title'];
+  }
+
+  return ['data' => $data];
 }
 
 // POST
