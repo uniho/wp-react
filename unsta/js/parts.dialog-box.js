@@ -1,5 +1,6 @@
 
 import {Ref, Style} from './namespaces.js'
+import {ModalDesktop, ModalSystem, scrollLock} from './parts.modal.js'
 
 // デスクトップモーダルなダイアログボックス
 export const DialogBox = class extends React.Component { 
@@ -55,33 +56,17 @@ export const DialogBox = class extends React.Component {
       style.opacity = 0
     }  
 
-    const scrollWidth = Math.max(
-      document.body.scrollWidth, document.documentElement.scrollWidth,
-      document.body.offsetWidth, document.documentElement.offsetWidth,
-      document.body.clientWidth, document.documentElement.clientWidth
-    )
-    
-    const scrollHeight = Math.max(
-      document.body.scrollHeight, document.documentElement.scrollHeight,
-      document.body.offsetHeight, document.documentElement.offsetHeight,
-      document.body.clientHeight, document.documentElement.clientHeight
-    )
-    
-    return ReactDOM.createPortal(html`
-    <div onClick=${this.handleClick}
+    return html`
+    <${ModalDesktop} onClick=${this.handleClick}
       style=${{
-        position: 'absolute',
-        top: 0, left: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0)',
-        width: scrollWidth + 'px', height: scrollHeight + 'px',
         display: 'flex', flexDirection: 'column', alignItems: 'center'
       }}
     >
       <div style=${style}>
         ${this.state.message}
       </div>
-    </div>
-    `, Ref.desktop)
+    <//>
+    `
   }
 }
 
@@ -220,16 +205,11 @@ export const SysDialogBox = class extends React.Component {
     this.hide();
   }
   show(message) {
-    const w = document.body.clientWidth
-    document.body.style.overflow = 'hidden'
-    if (document.body.clientWidth != w) {
-      document.body.style.paddingRight = `${document.body.clientWidth - w}px` 
-    }
+    scrollLock(true)
     this.setState({show: 1, message, })
   }
   hide() {
-    document.body.style.overflow = ''   
-    document.body.style.paddingRight = 0 
+    scrollLock(false)
     this.setState({show: false})
   }
   render() {
@@ -246,21 +226,16 @@ export const SysDialogBox = class extends React.Component {
       padding: '1rem',
     }
 
-    return ReactDOM.createPortal(html`
-    <div onClick=${this.handleClick}
+    return html`
+    <${ModalSystem} onClick=${this.handleClick}
       style=${{
-        position: 'fixed',
-        zIndex: 99,
-        top: 0, left: 0, width: '100%', height: '100vh',
-        backgroundColor: 'rgba(0, 0, 0, .7)',
         display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center'
       }}
     >
       <div style=${style}>
         ${this.state.message}
       </div>  
-    </div>
-    `, Ref.desktop
-    )
+    <//>
+    `
   }
 }

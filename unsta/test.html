@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width">
+  </head>
+  <body>
+    <div id="app"></div>
+
+    <script crossorigin src="https://unpkg.com/react@18.3.0-next-6883d7944-20221101/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18.3.0-next-6883d7944-20221101/umd/react-dom.production.min.js"></script>
+  
+    <script>
+////////////////////////////////////////////////////
+
+//
+const resource = (async() => {
+  // const r = await fetch('https://ppp.uniho.dev/test-wp/?rest_route=/unsta/v1/api/current-user/-')
+  // const r = await fetch('https://ppp.uniho.dev/test-wp/?rest_route=/wp/v2/posts')
+  const r = await fetch(
+    // 'https://www.uniho.tk/drupal-base/bd/api/user/v1/current-user/-',
+    // 'https://ppp.uniho.dev/test-wp/?rest_route=/unsta/v1/api/current-user/-',
+    'https://ppp.uniho.dev/test-wp/?rest_route=/wp/v2/posts',
+  {mode: 'cors', credentials: 'include',},
+  )
+  return await r.json()
+})()
+
+//
+const Inner = props => {
+  const json = React.use(resource)
+  console.log(json)
+  return null
+}
+
+//
+const App = props => {
+  return React.createElement(React.Suspense, 
+    {
+      fallback: React.createElement('p', {}, 'Now Loading...')
+    }, 
+    React.createElement(Inner)
+  )
+}
+
+const root = ReactDOM.createRoot(document.getElementById("app"))
+root.render(React.createElement(App))
+    
+////////////////////////////////////////////////////
+    </script>
+  
+  </body>
+
+</html>

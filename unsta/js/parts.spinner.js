@@ -1,5 +1,6 @@
 
 import {Ref, Style} from './namespaces.js'
+import {ModalDesktop} from './parts.modal.js'
 
 const stretchdelay = keyframes`
   0%, 40%, 100% { transform: scaleY(0.4) }
@@ -175,29 +176,8 @@ export const SpinnerCenter = props => html`
 
 
 // デスクトップのほぼ中央にスピナー
-export const SpinnerOnDesktop = () => {
-
-  const scrollWidth = Math.max(
-    document.body.scrollWidth, document.documentElement.scrollWidth,
-    document.body.offsetWidth, document.documentElement.offsetWidth,
-    document.body.clientWidth, document.documentElement.clientWidth
-  )
-  
-  const scrollHeight = Math.max(
-    document.body.scrollHeight, document.documentElement.scrollHeight,
-    document.body.offsetHeight, document.documentElement.offsetHeight,
-    document.body.clientHeight, document.documentElement.clientHeight
-  )
-  
-  return ReactDOM.createPortal(html`
-  <div
-    style=${{
-      position: 'absolute',
-      top: 0, left: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0)',
-      width: scrollWidth + 'px', height: scrollHeight + 'px',
-    }}  
-  >
+export const SpinnerOnDesktop = () => html`
+  <${ModalDesktop}>
     <div style=${{
       position: 'absolute',
       top: '40vh', left: '50%',
@@ -205,10 +185,8 @@ export const SpinnerOnDesktop = () => {
     }}>
       ${spinner12(80, "white")}
     </div>  
-  </div>
-  `, Ref.desktop
-  )
-}
+  <//>
+`
 
 
 // スピナー付きメッセージ
@@ -250,27 +228,8 @@ export const ModalSpinner = class extends React.Component {
 
     const msg = this.state.message
 
-    const scrollWidth = Math.max(
-      document.body.scrollWidth, document.documentElement.scrollWidth,
-      document.body.offsetWidth, document.documentElement.offsetWidth,
-      document.body.clientWidth, document.documentElement.clientWidth
-    )
-    
-    const scrollHeight = Math.max(
-      document.body.scrollHeight, document.documentElement.scrollHeight,
-      document.body.offsetHeight, document.documentElement.offsetHeight,
-      document.body.clientHeight, document.documentElement.clientHeight
-    )
-    
-    return ReactDOM.createPortal(html`
-    <div
-      style=${{
-        position: 'absolute',
-        top: 0, left: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0)',
-        width: scrollWidth + 'px', height: scrollHeight + 'px',
-      }}  
-    >
+    return html`
+    <${ModalDesktop}>
       <div style=${style}>
         <div style=${{display:'flex', marginTop:'1rem', justifyContent:'center'}}>
           ${msg ? msg : ''}
@@ -279,8 +238,7 @@ export const ModalSpinner = class extends React.Component {
           ${spinner3}
         </div>
       </div>
-    </div>
-    `, Ref.desktop
-    )
+    <//>
+    `
   }
 }

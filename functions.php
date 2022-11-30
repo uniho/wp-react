@@ -19,6 +19,12 @@ add_action('wp_enqueue_scripts', function() {
 });
 
 
+// CORS の設定
+add_action('rest_api_init', function() {
+  remove_filter('rest_pre_serve_request', 'rest_send_cors_headers');
+}, 15);
+
+
 // WP REST API エンドポイント追加(get)
 add_action('rest_api_init', function() {
   register_rest_route('unsta/v1', '/api/(?P<cmd>[\\w\\d\\-]+)\\/(?P<arg>.*)', [

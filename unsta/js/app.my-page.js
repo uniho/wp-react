@@ -1,7 +1,7 @@
 import {Const, Style, Ref} from './namespaces.js'
 import {cssBase} from './style.js'
 import {ModalSpinner} from './parts.spinner.js'
-import {Snackbar} from './parts.snackbar.js'
+import {ModalDesktop} from './parts.modal.js'
 import IconMenu from './icons/menu.js'
 import IconRight from './icons/chevron-right.js'
 
@@ -68,7 +68,7 @@ const getResource = async function() {
   return res
 }
 
-let modalSpinner, snackbar;
+let modalSpinner;
 
 //
 const doLogoff = async(e) => {
@@ -100,10 +100,11 @@ const Page = props => {
   return html`<${Fragment}>
 
   <${ModalSpinner} ref=${e => modalSpinner = e} />
-  <${Snackbar} ref=${e => snackbar = e} />
 
   <${PopupMenu} show=${stateMenu} hide=${() => setStateMenu(false)} cursor=${refCursor.current}>
-    <div>設定</div>
+    <div>
+      設定
+    </div>
     <div onClick=${doLogoff}>
       ログオフ
     </div>
@@ -121,7 +122,7 @@ const Page = props => {
       ${user_name}
     </div>
 
-    ${ data.wa ? html`
+    ${ data.wa ? html`<${Fragment}>
     <div className="mt-8 flex" style=${{justifyContent:'end'}}>
       <div>作成日: ${data.wa.date}</div>
     </div>
@@ -130,71 +131,36 @@ const Page = props => {
       <div className="table-title">アクセス分析レポート</div>
       <div className="table-title-bottom"></div>
 
-      <div className="flex top-row">
-        <${CommentRow} title="サイト名" data=${data.wa.site_name} />
-      </div>
-      <div className="flex">
-        <${CommentRow} title="サイトURL" data=${data.wa.site_url} />
-      </div>
-      <div className="flex">
-        <${CommentRow} title="分析期間" data=${data.wa.kikan} />
-      </div>
+      <${CommentRow} c="top-row" title="サイト名" data=${data.wa.site_name} />
+      <${CommentRow} title="サイトURL" data=${data.wa.site_url} />
+      <${CommentRow} title="分析期間" data=${data.wa.kikan} />
 
       <div className="table-bottom"></div>
     </div>
 
     <div className="mt-8 table flex-col has-primary-background-color has-background">
-      <div className="flex top-row">
-        <${CommentRow} title="ユーザー" data=${data.wa.user1} comment=${data.wa.user2}/>
-      </div>
-      <div className="flex">
-        <${CommentRow} title="ページビュー" data=${data.wa.page_view1} comment=${data.wa.page_view2}/>
-      </div>
-      <div className="flex">
-        <${CommentRow} title="直帰率" data=${data.wa.chokki_ritsu1} comment=${data.wa.chokki_ritsu2}/>
-      </div>
-      <div className="flex">
-        <${CommentRow} title="閲覧ページ" data=${data.wa.etsuran_page} comment=""/>
-      </div>
-      <div className="flex">
-        <${CommentRow} title="<span>地域</span><span>（都道府県）</span>" data=${data.wa.area_pref1} comment=${data.wa.area_pref2}/>
-      </div>
-      <div className="flex">
-        <${CommentRow} title="<span>地域</span><span>（特定地域）</span>" data=${data.wa.area_city1} comment=${data.wa.area_city2}/>
-      </div>
-      <div className="flex">
-        <${CommentRow} title="デバイス" data=${data.wa.device1} comment=${data.wa.device2}/>
-      </div>
-      <div className="flex">
-        <${CommentRow} title="流入経路" data=${data.wa.device1} comment=${data.wa.device2}/>
-      </div>
-      <div className="flex">
-        <${CommentRow} title="<span>流入</span><span>キーワード</span>" data=${data.wa.keyword} />
-      </div>
-      <div className="flex">
-        <${CommentRow} title="年齢" data=${data.wa.nenrei1} comment=${data.wa.nenrei2}/>
-      </div>
-      <div className="flex">
-        <${CommentRow} title="性別" data=${data.wa.sex1} comment=${data.wa.sex2}/>
-      </div>
-      <div className="flex">
-        <${CommentRow} title="総合分析" data=${data.wa.bunseki} />
-      </div>
-      <div className="flex">
-        <${CommentRow} title="備考" data=${data.wa.biko} />
-      </div>
-
+      <${CommentRow} c="top-row" title="ユーザー" data=${data.wa.user1} comment=${data.wa.user2}/>
+      <${CommentRow} title="ページビュー" data=${data.wa.page_view1} comment=${data.wa.page_view2}/>
+      <${CommentRow} title="直帰率" data=${data.wa.chokki_ritsu1} comment=${data.wa.chokki_ritsu2}/>
+      <${CommentRow} title="閲覧ページ" data=${data.wa.etsuran_page} comment=""/>
+      <${CommentRow} title="<span>地域</span><span>（都道府県）</span>" data=${data.wa.area_pref1} comment=${data.wa.area_pref2}/>
+      <${CommentRow} title="<span>地域</span><span>（特定地域）</span>" data=${data.wa.area_city1} comment=${data.wa.area_city2}/>
+      <${CommentRow} title="デバイス" data=${data.wa.device1} comment=${data.wa.device2}/>
+      <${CommentRow} title="流入経路" data=${data.wa.device1} comment=${data.wa.device2}/>
+      <${CommentRow} title="<span>流入</span><span>キーワード</span>" data=${data.wa.keyword} />
+      <${CommentRow} title="年齢" data=${data.wa.nenrei1} comment=${data.wa.nenrei2}/>
+      <${CommentRow} title="性別" data=${data.wa.sex1} comment=${data.wa.sex2}/>
+      <${CommentRow} title="総合分析" data=${data.wa.bunseki} />
+      <${CommentRow} title="備考" data=${data.wa.biko} />
       <div className="table-bottom"></div>
-
     </div>
+    <//>
 
     ` : html`
     <div className="mt-8 table flex-col has-primary-background-color has-background">
       <div className="table-title">アクセス分析レポート</div>
       <div className="table-title-bottom"></div>
-      <div className="flex top-row">
-        <${CommentRow} title="なし" data="なし" />
-      </div>
+      <${CommentRow} c="top-row" title="なし" data="なし" />
       <div className="table-bottom"></div>
     </div>
     `}
@@ -220,18 +186,20 @@ const CommentRow = props => {
     return props.comment.replace(/\n/g, '<br/>')
   }, [])
 
-  return html`<${Fragment}>
-  <div className="title" dangerouslySetInnerHTML=${{__html: props.title}}></div>
-  <div className="field flex-col" onClick=${handleClick}>
-    <div className="flex"> 
-      <div className=${cx({show: props.comment?.length > 0, showComment: stateShowComment}, "comment-button")}>
-        <${IconRight} size="1.5rem"/>
+  return html`
+  <div className=${cx("flex", props.c)}>
+    <div className="title" dangerouslySetInnerHTML=${{__html: props.title}}></div>
+    <div className="field flex-col" onClick=${handleClick}>
+      <div className="flex"> 
+        <div className="data" dangerouslySetInnerHTML=${{__html: data}}></div>
+        <div className=${cx({show: props.comment?.length > 0, showComment: stateShowComment}, "comment-button")}>
+          <${IconRight} size="1.5rem"/>
+        </div>
       </div>
-      <div className="data" dangerouslySetInnerHTML=${{__html: data}}></div>
+      <div className=${cx({show: stateShowComment}, 'comment')} dangerouslySetInnerHTML=${{__html: comment}}></div>
     </div>
-    <div className=${cx({show: stateShowComment}, 'comment')} dangerouslySetInnerHTML=${{__html: comment}}></div>
   </div>
-  <//>`
+  `
 }
 
 //
@@ -347,18 +315,6 @@ const PopupMenu = props => {
   }
   if (y < my) y = my
 
-  const scrollWidth = Math.max(
-    document.body.scrollWidth, document.documentElement.scrollWidth,
-    document.body.offsetWidth, document.documentElement.offsetWidth,
-    document.body.clientWidth, document.documentElement.clientWidth
-  )
-  
-  const scrollHeight = Math.max(
-    document.body.scrollHeight, document.documentElement.scrollHeight,
-    document.body.offsetHeight, document.documentElement.offsetHeight,
-    document.body.clientHeight, document.documentElement.clientHeight
-  )
-  
   // for Hiding Animation
   const [stateHiding, setStateHiding] = React.useState(false)
   const hideMenu = () => {
@@ -371,49 +327,51 @@ const PopupMenu = props => {
 
   if (!props.show) return null;
 
-  return ReactDOM.createPortal(html`
-    <div className=${cssMenu} 
-      style=${{
-        position: 'absolute',
-        top: 0, left: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0)',
-        width: scrollWidth + 'px', height: scrollHeight + 'px',
-      }}  
-      onClick=${e => hideMenu()}
+  return html`
+  <${ModalDesktop} c=${cssMenu} onClick=${e => hideMenu()}>
+    <div className=${cx({hide: stateHiding})}
+      style=${{top: y, left: x, width:wx+'px', height:wy+'px'}}
     >
-      <div className=${cx({hide: stateHiding})}
-        style=${{top: y, left: x, width:wx+'px', height:wy+'px'}}
-      >
-        ${props.children}
-      </div>
+      ${props.children}
     </div>
-  `, Ref.desktop)
+  <//>
+  `
 }
 
 //
 const menuH = 100
-const menuClose_msec = 250
+const menuClose_msec = 200
 
 const kfMenuFadein = keyframes`
   0% {
-    height: 0; opacity: 0%;
+    height: 0;
   }
-  50% {
-    opacity: 100%;
+  80% {
+    height: ${menuH}px;
   }
   100% {
     height: ${menuH}px;
   }
 `
 
+const kfMenuFadeinChild = keyframes`
+  0% {
+    opacity: 0;
+  }
+  80% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 100%;
+  }
+`
+
 const kfMenuFadeout = keyframes`
   0% {
     height: ${menuH}px;
-    opacity: 100%;
   }
   100% {
     height: 0;
-    opacity: 10%;
   }
 `
 
@@ -435,8 +393,7 @@ const cssMenu = css`
     &.hide {
       animation: ${kfMenuFadeout} ${menuClose_msec}ms ease-in-out forwards;
       & > div {
-        opacity: 0;
-        transition: opacity ${menuClose_msec}ms;
+        display: none;
       }
     }
 
@@ -445,6 +402,7 @@ const cssMenu = css`
       overflow: hidden;
       white-space: nowrap;
       cursor: pointer;
+      animation: ${kfMenuFadeinChild} 0.5s ease-in-out forwards;
     }
   }
 

@@ -50,6 +50,12 @@ const Page = props => {
   const [statePass, setStatePass] = React.useState('password')
   const [stateFocusPass, setStateFocusPass] = React.useState(false)
 
+  const handleKeyDown = e => {
+    if (e.keyCode == 0x0d) {
+      doLogin(e)
+    }
+  }
+
   const handleChange = e => {
     state[e.target.name] = e.target.value;
     const newobj = Object.assign({}, state) // オブジェクトを新しくして更新を通知
@@ -189,7 +195,7 @@ const Page = props => {
   <${StdDialogBox} ref=${e => confirmBox = e} />
   <${ResetPassDialog} ref=${e => resetPassDialog = e} />
 
-  <div className=${cx(cssPage, 'flex j-center')}>
+  <div className=${cx(cssPage, 'flex j-center')} tabIndex="0" onKeyDown=${handleKeyDown}>
     <div className='login-form shadow fade-in animation-delay0'>
       <div className="flex-col">
         <div className="flex-col">
