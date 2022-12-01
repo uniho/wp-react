@@ -122,51 +122,59 @@ const Page = props => {
       ${user_name}
     </div>
 
-    ${ data.wa ? html`<${Fragment}>
-    <div className="mt-8 flex" style=${{justifyContent:'end'}}>
-      <div>作成日: ${data.wa.date}</div>
-    </div>
+    <${Render}>${() => {
+      if (!data.wa) {
+        return html`
+        <div className="mt-8 table flex-col has-primary-background-color has-background">
+          <div className="table-title">アクセス分析レポート</div>
+          <div className="table-title-bottom"></div>
+          <${CommentRow} c="top-row" title="なし" data="なし" />
+          <div className="table-bottom"></div>
+        </div>
+        `
+      }
 
-    <div className="table flex-col has-primary-background-color has-background">
-      <div className="table-title">アクセス分析レポート</div>
-      <div className="table-title-bottom"></div>
+      return html`<${Fragment}>
+      <div className="mt-8 flex" style=${{justifyContent:'end'}}>
+        <div>作成日: ${data.wa.date}</div>
+      </div>
 
-      <${CommentRow} c="top-row" title="サイト名" data=${data.wa.site_name} />
-      <${CommentRow} title="サイトURL" data=${data.wa.site_url} />
-      <${CommentRow} title="分析期間" data=${data.wa.kikan} />
+      <div className="table flex-col has-primary-background-color has-background">
+        <div className="table-title">アクセス分析レポート</div>
+        <div className="table-title-bottom"></div>
 
-      <div className="table-bottom"></div>
-    </div>
+        <${CommentRow} c="top-row" title="サイト名" data=${data.wa.site_name} />
+        <${CommentRow} title="サイトURL" data=${data.wa.site_url} />
+        <${CommentRow} title="分析期間" data=${data.wa.kikan} />
 
-    <div className="mt-8 table flex-col has-primary-background-color has-background">
-      <${CommentRow} c="top-row" title="ユーザー" data=${data.wa.user1} comment=${data.wa.user2}/>
-      <${CommentRow} title="ページビュー" data=${data.wa.page_view1} comment=${data.wa.page_view2}/>
-      <${CommentRow} title="直帰率" data=${data.wa.chokki_ritsu1} comment=${data.wa.chokki_ritsu2}/>
-      <${CommentRow} title="閲覧ページ" data=${data.wa.etsuran_page} comment=""/>
-      <${CommentRow} title="<span>地域</span><span>（都道府県）</span>" data=${data.wa.area_pref1} comment=${data.wa.area_pref2}/>
-      <${CommentRow} title="<span>地域</span><span>（特定地域）</span>" data=${data.wa.area_city1} comment=${data.wa.area_city2}/>
-      <${CommentRow} title="デバイス" data=${data.wa.device1} comment=${data.wa.device2}/>
-      <${CommentRow} title="流入経路" data=${data.wa.device1} comment=${data.wa.device2}/>
-      <${CommentRow} title="<span>流入</span><span>キーワード</span>" data=${data.wa.keyword} />
-      <${CommentRow} title="年齢" data=${data.wa.nenrei1} comment=${data.wa.nenrei2}/>
-      <${CommentRow} title="性別" data=${data.wa.sex1} comment=${data.wa.sex2}/>
-      <${CommentRow} title="総合分析" data=${data.wa.bunseki} />
-      <${CommentRow} title="備考" data=${data.wa.biko} />
-      <div className="table-bottom"></div>
-    </div>
-    <//>
+        <div className="table-bottom"></div>
+      </div>
 
-    ` : html`
-    <div className="mt-8 table flex-col has-primary-background-color has-background">
-      <div className="table-title">アクセス分析レポート</div>
-      <div className="table-title-bottom"></div>
-      <${CommentRow} c="top-row" title="なし" data="なし" />
-      <div className="table-bottom"></div>
-    </div>
-    `}
+      <div className="mt-8 table flex-col has-primary-background-color has-background">
+        <${CommentRow} c="top-row" title="ユーザー" data=${data.wa.user1} comment=${data.wa.user2}/>
+        <${CommentRow} title="ページビュー" data=${data.wa.page_view1} comment=${data.wa.page_view2}/>
+        <${CommentRow} title="直帰率" data=${data.wa.chokki_ritsu1} comment=${data.wa.chokki_ritsu2}/>
+        <${CommentRow} title="閲覧ページ" data=${data.wa.etsuran_page} comment=""/>
+        <${CommentRow} title="<span>地域</span><span>（都道府県）</span>" data=${data.wa.area_pref1} comment=${data.wa.area_pref2}/>
+        <${CommentRow} title="<span>地域</span><span>（特定地域）</span>" data=${data.wa.area_city1} comment=${data.wa.area_city2}/>
+        <${CommentRow} title="デバイス" data=${data.wa.device1} comment=${data.wa.device2}/>
+        <${CommentRow} title="流入経路" data=${data.wa.device1} comment=${data.wa.device2}/>
+        <${CommentRow} title="<span>流入</span><span>キーワード</span>" data=${data.wa.keyword} />
+        <${CommentRow} title="年齢" data=${data.wa.nenrei1} comment=${data.wa.nenrei2}/>
+        <${CommentRow} title="性別" data=${data.wa.sex1} comment=${data.wa.sex2}/>
+        <${CommentRow} title="総合分析" data=${data.wa.bunseki} />
+        <${CommentRow} title="備考" data=${data.wa.biko} />
+        <div className="table-bottom"></div>
+      </div>
+      <//>
+      `
+    }}<//>
   </div>
   <//>`
 }
+
+//
+const Render = props => props.children()
 
 //
 const CommentRow = props => {
