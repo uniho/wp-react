@@ -33,8 +33,17 @@ const getResource = async function() {
   if (res.userResponce.ok) {
     const json = await res.userResponce.json()
     res.user = json.data
+
+    res.slugResponce = await fetch(Const.uri + '/index.php?rest_route=/unsta/v1/api/get-slug2id/-', {
+      mode: 'cors', credentials: 'include',
+    })
+    if (res.slugResponce.ok) {
+      const json = await res.slugResponce.json()
+      Const.pageID = json.data
+    }
+  
     if (res.user.id) {
-      location.replace(Const.uri + '/?page_id=' + Const.pageID.myPage)
+      location.replace(Const.uri + '/?page_id=' + Const.pageID['my-page'])
     }
   }
 
@@ -107,7 +116,7 @@ const Page = props => {
   
         if (r.status == 200 || r.status == 403) {
           // 成功
-          location.replace(Const.uri + '/?page_id=' + Const.pageID.myPage)
+          location.replace(Const.uri + '/?page_id=' + Const.pageID['my-page'])
         } else {
           throw new Error(await r.json() + ` (${r.status})`)
         }
@@ -161,7 +170,7 @@ const Page = props => {
               data: resetData.current,
               callback: (e, r) => {
                 if (r == 'OK') {
-                  location.href = Const.uri + '/?page_id=' + Const.pageID.myPage
+                  location.href = Const.uri + '/?page_id=' + Const.pageID['my-page']
                   return
                 }  
                 if (r == 'CXL') return;
@@ -196,7 +205,7 @@ const Page = props => {
   <${ResetPassDialog} ref=${e => resetPassDialog = e} />
 
   <div className=${cx(cssPage, 'flex j-center')} tabIndex="0" onKeyDown=${handleKeyDown}>
-    <div className='login-form shadow fade-in animation-delay0'>
+    <div className='login-form shadow fade-in animation-delay0 mt-2'>
       <div className="flex-col">
         <div className="flex-col">
           <label htmlFor="login-id">メールアドレス</label>

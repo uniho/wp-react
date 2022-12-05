@@ -206,6 +206,7 @@ add_shortcode('jsApp', function ($atts) {
   $props['uri'] = $uri;
   $props['wp_nonce'] = wp_create_nonce('wp_rest');
   $props['wp_object_id'] = get_queried_object_id();
+  $props['wp_object_slug'] = get_post_field('post_name', get_queried_object_id());
   $props['wp_user_id'] = get_current_user_id();
   $props['wp_user_is_admin'] = current_user_can('manage_options');
   $props = json_encode($props);

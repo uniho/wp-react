@@ -10,6 +10,7 @@ export default props => {
   Const.uri = props.uri
   Const.wp_nonce = props.wp_nonce
   Const.wp_object_id = props.wp_object_id
+  Const.wp_object_slug = props.wp_object_slug
   Const.wp_user_is_admin = props.wp_user_is_admin
   resource = getResource()
   return html`
@@ -26,8 +27,8 @@ let resource
 const getResource = async function() {
   const res = {}
 
-  if (Const.wp_object_id == Const.pageID.myPage) {
-    res.userResponce = await fetch(Const.uri + '/?rest_route=/unsta/v1/api/current-user/-', {
+  if (Const.wp_object_slug == 'my-page') {
+    res.userResponce = await fetch(Const.uri + '/?rest_route=/unsta/v1/api/current-user/fields', {
       mode: 'cors', credentials: 'include',
     })
 
@@ -47,7 +48,9 @@ const getResource = async function() {
 
     if (res.userResponce.ok) {
       const json = await res.userResponce.json()
-      res.user = {id: Const.wp_object_id, name: json.data?.Title}
+      res.user = json.data
+      res.user.id = Const.wp_object_id
+      res.user.name = json.data?.Title
     }
   }
 
@@ -63,6 +66,17 @@ const getResource = async function() {
       res.wa = json.data
       // console.log(res.wa)
     }
+
+    if (res.user.url2title) {
+      const rows = res.user.url2title.split(/\n/)
+      res.user.url2title = {}
+      for (const row of rows) {
+        const url = row.replaceAll("\u3000", " ").split(/\s+/)
+        if (url.length > 1) res.user.url2title[url[0].trim()] = url[1].trim()
+      }
+      console.log(res.user.url2title)
+    }
+    
   }  
   
   return res
@@ -97,6 +111,17 @@ const Page = props => {
   let user_name = ''
   if (data.user?.id) user_name = `${data.user.name} 様 (${data.user.id})` 
 
+  const etsuran_page = React.useMemo(() => {
+    const json = JSON.parse(data.wa.etsuran_page)
+    let s = ''
+    for (const key in json) {
+      if (s) s += '、'
+      const url = data.user.url2title[key] || key
+      s += `${url} ${json[key]}%` 
+    }
+    return s
+  })
+
   return html`<${Fragment}>
 
   <${ModalSpinner} ref=${e => modalSpinner = e} />
@@ -112,10 +137,8 @@ const Page = props => {
 
   <div className="${cssPage}">
 
-    <div className=${cx("flex", {show: stateMenu})} style=${{justifyContent:'end'}}>
-      <div className="menu-icon" onClick=${showMenu}>
-        <${IconMenu} size="2rem" />
-      </div>
+    <div className="menu-icon" onClick=${showMenu}>
+      <${IconMenu} size="2rem" />
     </div>
 
     <div>
@@ -151,18 +174,22 @@ const Page = props => {
       </div>
 
       <div className="mt-8 table flex-col has-primary-background-color has-background">
-        <${CommentRow} c="top-row" title="ユーザー" data=${data.wa.user1} comment=${data.wa.user2}/>
-        <${CommentRow} title="ページビュー" data=${data.wa.page_view1} comment=${data.wa.page_view2}/>
-        <${CommentRow} title="直帰率" data=${data.wa.chokki_ritsu1} comment=${data.wa.chokki_ritsu2}/>
-        <${CommentRow} title="閲覧ページ" data=${data.wa.etsuran_page} comment=""/>
-        <${CommentRow} title="<span>地域</span><span>（都道府県）</span>" data=${data.wa.area_pref1} comment=${data.wa.area_pref2}/>
-        <${CommentRow} title="<span>地域</span><span>（特定地域）</span>" data=${data.wa.area_city1} comment=${data.wa.area_city2}/>
-        <${CommentRow} title="デバイス" data=${data.wa.device1} comment=${data.wa.device2}/>
-        <${CommentRow} title="流入経路" data=${data.wa.device1} comment=${data.wa.device2}/>
-        <${CommentRow} title="<span>流入</span><span>キーワード</span>" data=${data.wa.keyword} />
-        <${CommentRow} title="年齢" data=${data.wa.nenrei1} comment=${data.wa.nenrei2}/>
-        <${CommentRow} title="性別" data=${data.wa.sex1} comment=${data.wa.sex2}/>
-        <${CommentRow} title="総合分析" data=${data.wa.bunseki} />
+        <${CommentRow} c="top-row" title="総合分析" data=${data.wa.content} />
+        <div className="table-bottom"></div>
+      </div>
+
+      <div className="mt-8 table flex-col has-primary-background-color has-background">
+        <${CommentRow} c="top-row" title="ユーザー" data=${data.wa.user} comment=${data.wa.user_biko}/>
+        <${CommentRow} title="ページビュー" data=${data.wa.page_view} comment=${data.wa.page_view_biko}/>
+        <${CommentRow} title="直帰率" data=${data.wa.chokki_ritsu} comment=${data.wa.chokki_ritsu_biko}/>
+        <${CommentRow} title="閲覧ページ" data=${etsuran_page} comment=${data.wa.etsuran_page_biko}/>
+        <${CommentRow} title="<span>地域</span><span>（都道府県）</span>" data=${data.wa.area_pref} comment=${data.wa.area_pref_biko}/>
+        <${CommentRow} title="<span>地域</span><span>（特定地域）</span>" data=${data.wa.area_city} comment=${data.wa.area_city_biko}/>
+        <${CommentRow} title="デバイス" data=${data.wa.device} comment=${data.wa.device_biko}/>
+        <${CommentRow} title="流入経路" data=${data.wa.keiro} comment=${data.wa.keiro_biko}/>
+        <${CommentRow} title="<span>流入</span><span>キーワード</span>" data=${data.wa.keyword} comment=${data.wa.keyword_biko} />
+        <${CommentRow} title="年齢" data=${data.wa.nenrei} comment=${data.wa.nenrei_biko}/>
+        <${CommentRow} title="性別" data=${data.wa.sex} comment=${data.wa.sex_biko}/>
         <${CommentRow} title="備考" data=${data.wa.biko} />
         <div className="table-bottom"></div>
       </div>
@@ -186,11 +213,12 @@ const CommentRow = props => {
 
   const data = React.useMemo(() => {
     if (!props.data) return '';
+    return props.data
     return props.data.replace(/\n/g, '<br/>')
   }, [])
 
   const comment = React.useMemo(() => {
-    if (!props.comment) return '';
+    if (!props.comment) return props.data;
     return props.comment.replace(/\n/g, '<br/>')
   }, [])
 
@@ -198,13 +226,13 @@ const CommentRow = props => {
   <div className=${cx("flex", props.c)}>
     <div className="title" dangerouslySetInnerHTML=${{__html: props.title}}></div>
     <div className="field flex-col" onClick=${handleClick}>
-      <div className="flex"> 
-        <div className="data" dangerouslySetInnerHTML=${{__html: data}}></div>
+      <div className="flex-col"> 
+        <div className="row1" dangerouslySetInnerHTML=${{__html: comment}}></div>
         <div className=${cx({show: props.comment?.length > 0, showComment: stateShowComment}, "comment-button")}>
           <${IconRight} size="1.5rem"/>
         </div>
       </div>
-      <div className=${cx({show: stateShowComment}, 'comment')} dangerouslySetInnerHTML=${{__html: comment}}></div>
+      <div className=${cx({show: stateShowComment}, 'row2')} dangerouslySetInnerHTML=${{__html: data}}></div>
     </div>
   </div>
   `
@@ -214,9 +242,20 @@ const CommentRow = props => {
 const cssPage = css`
 
   .menu-icon {
+    position: fixed;
+    top: 64px;
+    right: 32px;    
     display: flex;
     align-items: center;
     cursor: pointer;
+    padding: 2px;
+    background-color: ${Style.primary};
+  }
+
+  @media screen and (min-width: 1320px) {
+    .menu-icon {
+      right: calc((100vw - 1280px) / 2);
+    }
   }
 
   .table-title {
@@ -264,8 +303,12 @@ const cssPage = css`
     margin-right: 3px;
     background-color: var(--wp--preset--color--base);
 
-    .data {
+    .row1 {
       padding-left: 1rem;
+      * {
+        margin-block-start: 0;
+        margin-block-end: 0;
+      }
     }
 
     .comment-button {
@@ -289,7 +332,7 @@ const cssPage = css`
       }
     }
 
-    & > .comment {
+    & > .row2 {
       height: 0;
       opacity: 0;
       overflow: hidden;
@@ -312,16 +355,16 @@ const cssPage = css`
 const PopupMenu = props => {
   const wx = 200, wy = menuH, mx = 16, my = 16
   let x = props.cursor.pageX + mx - wx / 2
-  if (x + wx + mx > document.body.clientWidth) {
-    x = document.body.clientWidth - wx - mx
+  if (x + wx + mx > document.documentElement.scrollLeft + document.body.clientWidth) {
+    x = document.documentElement.scrollLeft + document.body.clientWidth - wx - mx
   }
-  if (x < mx) x = mx
+  if (x + mx < document.documentElement.scrollLeft) x = document.documentElement.scrollLeft + mx
   
   let y = props.cursor.pageY + my
-  if (y + wy > document.documentElement.clientHeight) {
-    y = document.documentElement.clientHeight - wy
+  if (y + wy + my > document.documentElement.scrollTop + document.documentElement.clientHeight) {
+    y = document.documentElement.scrollTop + document.documentElement.clientHeight - wy - my
   }
-  if (y < my) y = my
+  if (y + my < document.documentElement.scrollTop) y = document.documentElement.scrollTop + my
 
   // for Hiding Animation
   const [stateHiding, setStateHiding] = React.useState(false)

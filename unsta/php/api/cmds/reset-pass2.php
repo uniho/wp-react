@@ -21,7 +21,7 @@ function post($request, $body) {
     !$mail || strlen(!$mail) > 1024
   ) throw new \Exception('bad params');
 
-  if (!preg_match('/^[a-zA-Z0-9!"#$%&\'()\\-^@\\[;:\\],.\\/\\|`{+*}<>?_]{8,1024}$/', $pass)) {
+  if (!preg_match('/^[a-zA-Z0-9!"#$%&\'()\\-=^~@\\[;:\\],.\\/\\|`{+*}<>?_]{8,1024}$/', $pass)) {
     throw new \Exception('bad pass');
   }
 
