@@ -156,6 +156,11 @@ const Page = props => {
               // メール送信成功
               resetData.current = json.data
               resetData.current.mail = state.user
+              // ページ離脱時に確認メッセージを表示するように
+              window.onbeforeunload = e => {
+                e.preventDefault()
+                e.returnValue = '確認'
+              }
             } else {
               let r = json.error?.message || "ERROR!"
               if (r == 'unknown mail') r = '未登録のメールアドレスです'
@@ -170,6 +175,9 @@ const Page = props => {
               data: resetData.current,
               callback: (e, r) => {
                 if (r == 'OK') {
+                  // ページ離脱時に確認メッセージを表示しないように
+                  window.onbeforeunload = null
+                  // ページ遷移
                   location.href = Const.uri + '/?page_id=' + Const.pageID['my-page']
                   return
                 }  

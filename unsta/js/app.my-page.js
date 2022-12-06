@@ -112,6 +112,7 @@ const Page = props => {
   if (data.user?.id) user_name = `${data.user.name} 様 (${data.user.id})` 
 
   const etsuran_page = React.useMemo(() => {
+    if (!data.user?.id || !data.wa?.etsuran_page) return null;
     const json = JSON.parse(data.wa.etsuran_page)
     let s = ''
     for (const key in json) {
